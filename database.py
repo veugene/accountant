@@ -42,9 +42,42 @@ class database:
     def add_transactions(self, transaction_list: List[Transaction]):
         for tx in transaction_list:
             assert isinstance(tx, Transaction)
+        
+        # Match each transaction to a category, if known.
+        # 
+        # NOTE: this assumes that each name has a single category. If a name
+        # has multiple categories, this will silently just choose one category.
+        # Perhaps a sanity check should be added somewhere for this.
+        category_by_name = dict(
+            self.cursor.execute(
+                "SELECT name, category FROM bank_records"
+            )
+        )
+        transaction_list_with_categories = []
+        for tx in transaction_list:
+            category = None
+            if tx.name in category_by_name:
+                if tx.category is None:
+                    category = category_by_name[tx.name]
+                elif tx.category != category_by_name[tx.name]:
+                    raise ValueError(
+                        f"Transaction with name '{tx.name}' passed to the "
+                        f"database with category '{tx.category}' but this name "
+                        "is already associated with category "
+                        f"'{category_by_name[tx.name]}'."
+                    )
+            transaction = Transaction(
+                date=tx.date,
+                name=tx.name,
+                amount=tx.amount,
+                category=category
+            )
+            transaction_list_with_categories.append(transaction)
+        
+        # After matching each transaction to a category, add them to db.
         self.cursor.executemany(
             f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
-            transaction_list
+            transaction_list_with_categories
         )
         self.connection.commit()
     
