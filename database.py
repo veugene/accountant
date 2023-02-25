@@ -19,7 +19,7 @@ class database:
         self.table_name = 'bank_records'
         self.columns = Transaction._fields
 
-    def exists(self):
+    def exists(self) -> bool:
         check = self.cursor.execute(
             "SELECT name "
             "FROM sqlite_master "
@@ -30,7 +30,7 @@ class database:
         assert db_exists in [0, 1]
         return bool(db_exists)
     
-    def create(self):
+    def create(self) -> None:
         if self.exists():
             raise Exception(
                 'Database already exists. Will not create a new one.'
@@ -39,45 +39,52 @@ class database:
             f"CREATE TABLE {self.table_name}({','.join(self.columns)})"
         )
 
-    def add_transactions(self, transaction_list: List[Transaction]):
+    def add_transactions(self, transaction_list: List[Transaction]) -> None:
         for tx in transaction_list:
             assert isinstance(tx, Transaction)
         
         # Match each transaction to a category, if known.
-        # 
-        # NOTE: this assumes that each name has a single category. If a name
-        # has multiple categories, this will silently just choose one category.
-        # Perhaps a sanity check should be added somewhere for this.
-        category_by_name = dict(
-            self.cursor.execute(
-                "SELECT name, category FROM bank_records"
-            )
+        transactions_with_categories = self.match_transactions_to_categories(
+            transaction_list
         )
-        transaction_list_with_categories = []
+        
+        # After matching each transaction to a category, add them to db.
+        self.cursor.executemany(
+            f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
+            transactions_with_categories
+        )
+        self.connection.commit()
+    
+    def match_transactions_to_categories(
+        self, transaction_list: List[Transaction]
+    ) -> List[Transaction]:
+        transactions_with_categories = []
         for tx in transaction_list:
-            category = None
-            if tx.name in category_by_name:
+            category = self.get_category_by_name(tx.name)
+            if category is not None:
                 if tx.category is None:
                     category = category_by_name[tx.name]
-                elif tx.category != category_by_name[tx.name]:
+                elif tx.category != category:
                     raise ValueError(
                         f"Transaction with name '{tx.name}' passed to the "
                         f"database with category '{tx.category}' but this name "
-                        "is already associated with category "
-                        f"'{category_by_name[tx.name]}'."
+                        f"is already associated with category '{category}'."
                     )
             transaction = Transaction(
                 date=tx.date,
                 name=tx.name,
                 amount=tx.amount,
-                category=category
+                category=category,
             )
-            transaction_list_with_categories.append(transaction)
-        
-        # After matching each transaction to a category, add them to db.
-        self.cursor.executemany(
-            f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
-            transaction_list_with_categories
-        )
-        self.connection.commit()
+            transactions_with_categories.append(transaction)
+        return transactions_with_categories
     
+    def get_category_by_name(self, name: str) -> Optional[str]:
+        category_list = self.cursor.execute(
+            f"SELECT category FROM bank_records WHERE name='name'"
+        ).fetchall()
+        if len(category_list) == 0:
+            return None
+        assert len(set(category_list)) == 1
+        return category_list[0]
+        
