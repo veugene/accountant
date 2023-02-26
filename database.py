@@ -1,6 +1,7 @@
 from pathlib import Path
 import sqlite3
 from typing import List, NamedTuple, Optional
+import warnings
 
 
 class Transaction(NamedTuple):
@@ -10,14 +11,13 @@ class Transaction(NamedTuple):
     category: Optional[str] = None
 
 
-class database:
+class Database:
     def __init__(self, database_file_path):
         self.database_file_path = Path(database_file_path)
         self.database_file_path.parent.mkdir(parents=True, exist_ok=True)    
         self.connection = sqlite3.connect(database_file_path)
         self.cursor = self.connection.cursor()
         self.table_name = 'bank_records'
-        self.columns = Transaction._fields
 
     def exists(self) -> bool:
         check = self.cursor.execute(
@@ -36,10 +36,20 @@ class database:
                 'Database already exists. Will not create a new one.'
             )
         self.cursor.execute(
-            f"CREATE TABLE {self.table_name}({','.join(self.columns)})"
+            f"CREATE TABLE {self.table_name}("
+                "date TEXT,"
+                "name TEXT,"
+                "amount FLOAT,"
+                "category TEXT,"
+                "UNIQUE(date, name, amount)"
+            ")"
         )
 
-    def add_transactions(self, transaction_list: List[Transaction]) -> None:
+    def add_transactions(
+        self,
+        transaction_list: List[Transaction],
+        raise_on_duplicate=False,
+    ) -> None:
         for tx in transaction_list:
             assert isinstance(tx, Transaction)
         
@@ -49,11 +59,23 @@ class database:
         )
         
         # After matching each transaction to a category, add them to db.
-        self.cursor.executemany(
-            f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
-            transactions_with_categories
-        )
-        self.connection.commit()
+        for tx in transactions_with_categories:
+            try:
+                self.cursor.execute(
+                    f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
+                    tx
+                )
+            except sqlite3.IntegrityError:
+                # UNIQUE constraint failed. Entry already exists. Don't add.
+                msg = (
+                    f'Entry date, name, and amount already exists: {tx}.'
+                    'Will not add this transaction to the database.'
+                )
+                if raise_on_duplicate:
+                    print(msg)
+                    raise
+                else:
+                    warnings.warn(msg)
     
     def match_transactions_to_categories(
         self, transaction_list: List[Transaction]
