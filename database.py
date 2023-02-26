@@ -79,6 +79,7 @@ class Database:
             except:
                 print(f'Error when adding transaction: {tx}')
                 raise
+        self.connection.commit()
     
     def match_transactions_to_categories(
         self, transaction_list: List[Transaction]
