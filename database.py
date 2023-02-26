@@ -36,7 +36,7 @@ class _Database:
         self.cursor = self.connection.cursor()
         self.table_name = 'bank_records'
 
-    def exists(self) -> bool:
+        # Create the table if it does not yet exist.
         check = self.cursor.execute(
             'SELECT name '
             'FROM sqlite_master '
@@ -45,22 +45,16 @@ class _Database:
         )
         db_exists = len(check.fetchall())
         assert db_exists in [0, 1]
-        return bool(db_exists)
-    
-    def create(self) -> None:
-        if self.exists():
-            raise Exception(
-                'Database already exists. Will not create a new one.'
+        if not db_exists:
+            self.cursor.execute(
+                f'CREATE TABLE {self.table_name}('
+                    'date TEXT,'
+                    'name TEXT,'
+                    'amount FLOAT,'
+                    'category TEXT,'
+                    'UNIQUE(date, name, amount)'
+                ')'
             )
-        self.cursor.execute(
-            f'CREATE TABLE {self.table_name}('
-                'date TEXT,'
-                'name TEXT,'
-                'amount FLOAT,'
-                'category TEXT,'
-                'UNIQUE(date, name, amount)'
-            ')'
-        )
 
     def add_transactions(
         self,
