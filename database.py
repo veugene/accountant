@@ -21,10 +21,10 @@ class Database:
 
     def exists(self) -> bool:
         check = self.cursor.execute(
-            "SELECT name "
-            "FROM sqlite_master "
-            "WHERE type='table' "
-            f"AND name='{self.table_name}'"
+            'SELECT name '
+            'FROM sqlite_master '
+            'WHERE type="table" '
+            f'AND name="{self.table_name}"'
         )
         db_exists = len(check.fetchall())
         assert db_exists in [0, 1]
@@ -36,13 +36,13 @@ class Database:
                 'Database already exists. Will not create a new one.'
             )
         self.cursor.execute(
-            f"CREATE TABLE {self.table_name}("
-                "date TEXT,"
-                "name TEXT,"
-                "amount FLOAT,"
-                "category TEXT,"
-                "UNIQUE(date, name, amount)"
-            ")"
+            f'CREATE TABLE {self.table_name}('
+                'date TEXT,'
+                'name TEXT,'
+                'amount FLOAT,'
+                'category TEXT,'
+                'UNIQUE(date, name, amount)'
+            ')'
         )
 
     def add_transactions(
@@ -62,13 +62,13 @@ class Database:
         for tx in transactions_with_categories:
             try:
                 self.cursor.execute(
-                    f"INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)",
+                    f'INSERT INTO {self.table_name} VALUES (?, ?, ?, ?)',
                     tx
                 )
             except sqlite3.IntegrityError:
                 # UNIQUE constraint failed. Entry already exists. Don't add.
                 msg = (
-                    f'Entry date, name, and amount already exists: {tx}.'
+                    f'Entry date, name, and amount already exists: {tx}. '
                     'Will not add this transaction to the database.'
                 )
                 if raise_on_duplicate:
@@ -76,6 +76,9 @@ class Database:
                     raise
                 else:
                     warnings.warn(msg)
+            except:
+                print(f'Error when adding transaction: {tx}')
+                raise
     
     def match_transactions_to_categories(
         self, transaction_list: List[Transaction]
@@ -83,15 +86,15 @@ class Database:
         transactions_with_categories = []
         for tx in transaction_list:
             category = self.get_category_by_name(tx.name)
-            if category is not None:
-                if tx.category is None:
-                    category = category_by_name[tx.name]
-                elif tx.category != category:
+            if tx.category is not None and category is not None:
+                if tx.category != category:
                     raise ValueError(
-                        f"Transaction with name '{tx.name}' passed to the "
-                        f"database with category '{tx.category}' but this name "
-                        f"is already associated with category '{category}'."
+                        f'Transaction with name "{tx.name}" passed to the '
+                        f'database with category "{tx.category}" but this name '
+                        f'is already associated with category "{category}".'
                     )
+            if category is None:
+                category = tx.category
             transaction = Transaction(
                 date=tx.date,
                 name=tx.name,
@@ -103,10 +106,18 @@ class Database:
     
     def get_category_by_name(self, name: str) -> Optional[str]:
         category_list = self.cursor.execute(
-            f"SELECT category FROM bank_records WHERE name='name'"
+            f'SELECT DISTINCT category FROM {self.table_name} '
+            f'WHERE name="{name}"'
         ).fetchall()
         if len(category_list) == 0:
             return None
         assert len(set(category_list)) == 1
-        return category_list[0]
+        return category_list[0][0]
+    
+    def get_uncategorized_names(self) -> List[Transaction]:
+        result = self.cursor.execute(
+            f'SELECT DISTINCT name FROM {self.table_name} '
+            'WHERE category IS NULL'
+        )
+        return result.fetchall()
         
