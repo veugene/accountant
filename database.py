@@ -137,5 +137,12 @@ class _Database:
             f'SELECT DISTINCT name FROM {self.table_name} '
             'WHERE category IS NULL'
         )
-        return result.fetchall()
-        
+        retval = [val[0] for val in result.fetchall()]
+        return retval
+    
+    def set_name_category(self, name, category) -> None:
+        self.cursor.execute(
+            f'UPDATE {self.table_name} '
+            f'SET category="{category}" WHERE name="{name}"'
+        )
+        self.connection.commit()
