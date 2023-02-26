@@ -13,6 +13,23 @@ class Transaction(NamedTuple):
 
 class Database:
     def __init__(self, database_file_path):
+        self.database_file_path = database_file_path
+        self.connection = None
+
+    def __enter__(self):
+        db = _Database(self.database_file_path)
+        self.connection = db.connection
+        return db
+
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        if self.connection is not None:
+            self.connection.close()
+        if exception_type is not None:
+            return False    # Re-raise exception.
+
+
+class _Database:
+    def __init__(self, database_file_path):
         self.database_file_path = Path(database_file_path)
         self.database_file_path.parent.mkdir(parents=True, exist_ok=True)    
         self.connection = sqlite3.connect(database_file_path)
