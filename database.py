@@ -1,6 +1,6 @@
 from pathlib import Path
 import sqlite3
-from typing import List, NamedTuple, Optional
+from typing import List, NamedTuple, Optional, Union
 import warnings
 
 
@@ -131,7 +131,7 @@ class _Database:
             f'SELECT DISTINCT name FROM {self.table_name} '
             'WHERE category IS NULL'
         )
-        retval = [val[0] for val in result.fetchall()]
+        retval = [str(val[0]) for val in result.fetchall()]
         return retval
     
     def set_name_category(self, name, category) -> None:
@@ -140,3 +140,10 @@ class _Database:
             f'SET category="{category}" WHERE name="{name}"'
         )
         self.connection.commit()
+    
+    def get_all_categories(self) -> List[Union[None, str]]:
+        result = self.cursor.execute(
+            f'SELECT DISTINCT category FROM {self.table_name}'
+        )
+        retval = [str(val[0]) for val in result.fetchall()]
+        return retval
