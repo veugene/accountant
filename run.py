@@ -16,6 +16,53 @@ from dash.dependencies import Input, Output, State
 from database import Database, Transaction
 from parsing import parse_csv
 
+DB_PATH = "/home/eugene/.local/bank_records/db.sql"
+
+
+with Database(DB_PATH) as db:
+    df = pd.read_sql_query(f"SELECT * FROM {db.table_name}", db.connection)
+    fig = px.pie(df, values="amount", names="name")
+
+
+class PieChart:
+    def __init__(self):
+        self.category = None
+        self.df = None
+        self.fig = None
+        self.get_df("*")
+        self.get_fig("*")
+
+    def get_df(self, category: str = "*"):
+        if category == self.category:
+            # Return cached dataframe
+            return self.df
+
+        with Database(DB_PATH) as db:
+            if category == "NULL":
+                query = f"SELECT * FROM {db.table_name} WHERE category IS NULL"
+            elif category == "*":
+                query = f"SELECT * FROM {db.table_name}"
+            else:
+                query = (
+                    f"SELECT * FROM {db.table_name} WHERE category={category}"
+                )
+            df = pd.read_sql_query(query, db.connection)
+
+        self.category = category
+        self.df = df  # Cache
+        return df
+
+    def get_fig(self, category: str = "*"):
+        if category == self.category:
+            # Returned cached fig
+            return self.fig
+
+        df = self.get_df(category)
+        fig = pix.pie(df, values="amount", names="name")
+        self.fig = fig  # Cache
+        return fig
+
+
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 
@@ -65,17 +112,21 @@ app.layout = html.Div(
                             dbc.Button(
                                 "CLOSE BUTTON",
                                 id="button_close_modal_categorize",
-                                className="ml-auto",
+                                className="ms-auto",
                             )
                         ),
                     ],
                     id="modal_categorize",
                 ),
             ],
-            # style={'display': 'inline-block'},
+            style={"height": "80px"},
         ),
         html.Div(id="csv_output"),
-    ]
+        dcc.Graph(
+            id="pie_chart",
+            figure=fig,
+        ),
+    ],
 )
 
 
