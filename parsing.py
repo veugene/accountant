@@ -2,14 +2,13 @@ import csv
 from database import Transaction
 
 
-def parse_csv(csv_file_path):
+def parse_csv(csv_file_io):
     transaction_list = []
-    with open(csv_file_path, 'r') as f:
-        reader = csv.reader(f)
-        for line in reader:
-            transaction = parse_line(line)
-            if transaction is not None:
-                transaction_list.append(transaction)
+    reader = csv.reader(csv_file_io)
+    for line in reader:
+        transaction = parse_line(line)
+        if transaction is not None:
+            transaction_list.append(transaction)
     return transaction_list
 
 
