@@ -33,7 +33,7 @@ class PieChart:
                     f'SELECT * FROM {db.table_name} WHERE category={self.category}'
                 )
             self.df = pd.read_sql_query(query, db.connection)
-        self.fig = px.pie(self.df, values='amount', names='name')
+        self.fig = px.pie(self.df, values='amount', names='category')
 
     def get_df(self, category: Optional[str] = None) -> pd.DataFrame:
         if category is not None and category != self.category:
@@ -54,14 +54,20 @@ class Uncategorized:
     def update(self):
         with Database(self.db_path) as db:
             self.uncategorized_names = db.get_uncategorized_names()
-            self._iter = iter(self.uncategorized_names)
             self.category_list = db.get_all_categories()
+            self._iter = iter(self.uncategorized_names)
     
     def get_names(self) -> List[str]:
         return self.uncategorized_names
 
     def get_categories(self) -> List[str]:
         return self.category_list
-
+    
     def __next__(self):
-        return next(self._iter)
+        self._current_name = next(self._iter)
+        return self._current_name
+    
+    def set_category(self, category: str):
+        with Database(self.db_path) as db:
+            db.set_name_category(self._current_name, category)
+        self.update()

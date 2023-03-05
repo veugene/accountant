@@ -131,7 +131,7 @@ class _Database:
             f'SELECT DISTINCT name FROM {self.table_name} '
             'WHERE category IS NULL'
         )
-        retval = [str(val[0]) for val in result.fetchall()]
+        retval = [val[0] for val in result.fetchall()]
         return retval
     
     def set_name_category(self, name, category) -> None:
@@ -145,5 +145,5 @@ class _Database:
         result = self.cursor.execute(
             f'SELECT DISTINCT category FROM {self.table_name}'
         )
-        retval = [str(val[0]) for val in result.fetchall()]
+        retval = [val[0] for val in result.fetchall() if val[0] is not None]
         return retval

@@ -24,10 +24,25 @@ DB_PATH = '/home/eugene/.local/bank_records/db.sql'
 state_pie_chart = PieChart(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
 
+# Modal dialogue uses state.
+def get_modal_body():
+    try:
+        name = next(state_uncategorized)
+    except StopIteration:
+        message = 'No uncategorized transactions'
+        options = []
+    else:
+        message = html.I(name)
+        options = state_uncategorized.get_categories()
+    return message, options
+
 # The app accesses and updates the state.
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div(
     children=[
+        html.Div(id='dummy_upload_csv_output', style={'display': 'none'}),
+        html.Div(id='dummy_button_categorize_output', style={'display': 'none'}),
+        html.Div(id='dummy_button_plot_output', style={'display': 'none'}),
         html.Div(
             [
                 dcc.Upload(
@@ -36,7 +51,7 @@ app.layout = html.Div(
                         ['Import CSV files (click or drag and drop)']
                     ),
                     style={
-                        'width': '47%',
+                        'width': '31%',
                         'height': '60px',
                         'lineHeight': '60px',
                         'borderWidth': '1px',
@@ -53,7 +68,22 @@ app.layout = html.Div(
                     'Categorize unknown',
                     id='button_categorize',
                     style={
-                        'width': '47%',
+                        'width': '31%',
+                        'height': '60px',
+                        'lineHeight': '60px',
+                        'borderWidth': '2px',
+                        'borderStyle': 'solid',
+                        'borderRadius': '5px',
+                        'textAlign': 'center',
+                        'margin': '1%',
+                        'float': 'left',
+                    },
+                ),
+                html.Button(
+                    'Plot',
+                    id='button_plot',
+                    style={
+                        'width': '31%',
                         'height': '60px',
                         'lineHeight': '60px',
                         'borderWidth': '2px',
@@ -67,10 +97,19 @@ app.layout = html.Div(
                 dbc.Modal(
                     [
                         dbc.ModalHeader(html.B('Set a category')),
-                        dbc.ModalBody(id='modal_categorize_body', children=''),
+                        dbc.ModalBody(
+                            id='modal_categorize_body',
+                            children=[
+                                html.Div('', id='modal_categorize_message'),
+                                dcc.RadioItems(
+                                    [],
+                                    labelStyle={'display': 'block'},
+                                    id='modal_categorize_radio_items',
+                                ),
+                            ]),
                         dbc.ModalFooter(
                             dbc.Button(
-                                'CLOSE BUTTON',
+                                'Close',
                                 id='button_close_modal_categorize',
                                 className='ms-auto',
                             )
@@ -91,10 +130,13 @@ app.layout = html.Div(
 )
 
 
-@app.callback(Output('pie_chart', 'figure'), Input('upload_csv', 'contents'))
-def update_csv(contents_list):
+@app.callback(
+    Output('dummy_upload_csv_output', 'children'),
+    Input('upload_csv', 'contents'),
+)
+def upload_csv_callback(contents_list):
     if contents_list is None:
-        return state_pie_chart.fig
+        return None
 
     # Parse all transactions from csv files.
     transaction_import_list = []
@@ -117,41 +159,61 @@ def update_csv(contents_list):
     # exist in the database.
     with Database(DB_PATH) as db:
         db.add_transactions(transaction_import_list)
-    
-    # Update figure.
-    pie_chart.update()
-    fig = pie_chart.get_fig()
 
-    return fig
+    return None
+
+@app.callback(
+    Output('pie_chart', 'figure'),
+    Input('button_plot', 'n_clicks'),
+)
+def button_plot_callback(n_clicks):
+    # Update figure.
+    state_pie_chart.update()
+    return state_pie_chart.get_fig()
 
 
 @app.callback(
     Output('modal_categorize', 'is_open'),
-    Output('modal_categorize_body', 'children'),
+    Output('modal_categorize_message', 'children'),
+    Output('modal_categorize_radio_items', 'options'),
+    Output('modal_categorize_radio_items', 'value'),
     Input('button_categorize', 'n_clicks'),
     Input('button_close_modal_categorize', 'n_clicks'),
     State('modal_categorize', 'is_open'),
+    Input('modal_categorize_radio_items', 'value')
 )
-def toggle_modal_catogorize(n_clicks_open, n_clicks_close, is_open):
+def button_categorize_callback(n_clicks_open, n_clicks_close, is_open, category):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     set_is_open = is_open
-    if n_clicks_open or n_clicks_close:
-        set_is_open = not set_is_open
-    if set_is_open:
+    state_uncategorized.update()
+    
+    # If the modal dialog is toggled.
+    if trigger_id in ['button_categorize', 'button_close_modal_categorize']:
+        if n_clicks_open or n_clicks_close:
+            set_is_open = not set_is_open
+    
+    # If a radio item is selected within the modal dialog.
+    elif trigger_id == 'modal_categorize_radio_items':
+        state_uncategorized.set_category(category)
         state_uncategorized.update()
-    try:
-        name = next(state_uncategorized)
-    except StopIteration:
-        body = 'No uncategorized transactions'
+
+    # Initial null trigger on app start.
+    elif len(trigger_id) == 0:
+        pass
+    
+    # This should never happen.
     else:
-        body = html.Div(children=[
-            html.I(name),
-            dcc.RadioItems(
-                state_uncategorized.get_categories(),
-                labelStyle={'display': 'block'},
-                id='category_radio_items',
-            )
-        ])
-    return set_is_open, body
+        raise Exception(f'Unexpected callback trigger: {trigger_id}')
+
+    # Update the message and radio items options.
+    message, options = get_modal_body()
+    
+    # Update figure.
+    state_pie_chart.update()
+    fig = state_pie_chart.get_fig()
+    
+    return set_is_open, message, options, None
 
 
 if __name__ == '__main__':
