@@ -122,6 +122,14 @@ app.layout = html.Div(
             ],
             style={'height': '80px'},
         ),
+        dcc.Graph(
+            id='pie_chart',
+            figure=state_pie_chart.fig,
+            style={'float': 'left'},
+        ),
+        html.Div(
+            style={'width': '100%', 'float': 'left',}
+        ),
         html.Div(
             [
                 dcc.DatePickerRange(
@@ -132,12 +140,11 @@ app.layout = html.Div(
                     clearable=True,
                 ),
             ],
-            style={'float': 'left',}
+            style={'float': 'left', 'margin': '1%'}
         ),
-        dcc.Graph(
-            id='pie_chart',
-            figure=state_pie_chart.fig,
-            style={'float': 'left'},
+        html.Div(
+            id='category_contents',
+            style={'width': '31%', 'float': 'left', 'margin': '1%'}
         ),
     ],
 )
@@ -227,6 +234,31 @@ def button_categorize_callback(n_clicks_open, n_clicks_close, is_open, category)
     fig = state_pie_chart.get_fig()
     
     return set_is_open, message, options, None
+
+
+@app.callback(
+    Output('category_contents', 'children'),
+    Input(component_id='pie_chart', component_property='clickData'),
+)
+def click_pie_chart_callback(click_data):
+    if click_data is None:
+        return []
+    
+    category = click_data['points'][0]['label']
+    if category=='null':
+        category_query = 'category IS NULL'
+    else:
+        category_query = f'category="{category}"'
+    with Database(DB_PATH) as db:
+        df = pd.read_sql_query(
+            f'SELECT * FROM {db.table_name} WHERE {category_query} '
+            'ORDER BY date DESC',
+            db.connection
+        )
+    table = dash_table.DataTable(
+        df.to_dict('records'), [{"name": i, "id": i} for i in df.columns]
+    )
+    return [table]
 
 
 if __name__ == '__main__':
