@@ -115,11 +115,24 @@ app.layout = html.Div(
                             ],
                         ),
                         dbc.ModalFooter(
-                            dbc.Button(
-                                "Skip",
-                                id="button_skip_modal_categorize",
-                                className="ms-auto",
-                            )
+                            html.Div(
+                                [
+                                    dbc.Button(
+                                        "Skip",
+                                        id="button_skip_modal_categorize",
+                                        className="ms-auto",
+                                        style={'margin': '1%', "float": "right"},
+                                    ),
+                                    dbc.Button(
+                                        "Ignore",
+                                        id="button_ignore_modal_categorize",
+                                        className="ms-auto",
+                                        color='danger',
+                                        style={'margin': '1%', "float": "right"},
+                                    ),
+                                ],
+                                style={'width': '100%'},
+                            ),
                         ),
                     ],
                     id="modal_categorize",
@@ -219,12 +232,13 @@ def button_plot_callback(n_clicks):
     Output("modal_categorize_radio_items", "options"),
     Output("modal_categorize_radio_items", "value"),
     Input("button_categorize", "n_clicks"),
+    Input("button_ignore_modal_categorize", "n_clicks"),
     Input("button_skip_modal_categorize", "n_clicks"),
     State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
 )
 def button_categorize_callback(
-    n_clicks_open, n_clicks_close, is_open, category
+    n_clicks_open, n_clicks_ignore, n_clicks_skip, is_open, category
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
@@ -232,12 +246,16 @@ def button_categorize_callback(
 
     # If the modal dialog is toggled.
     if trigger_id == "button_categorize":
-        if n_clicks_open or n_clicks_close:
+        if n_clicks_open:
             set_is_open = not set_is_open
     
         # Create iterator if dialog is open.
         if set_is_open:
             state_uncategorized.update()
+    
+    # Ignore button pressed. Set a None category.
+    elif trigger_id == "button_ignore_modal_categorize":
+        state_uncategorized.set_category(None)
 
     # Skip button pressed. Skip to next iteration by doing nothing on this one.
     elif trigger_id == "button_skip_modal_categorize":
@@ -246,7 +264,6 @@ def button_categorize_callback(
     # If a radio item is selected within the modal dialog.
     elif trigger_id == "modal_categorize_radio_items":
         state_uncategorized.set_category(category)
-        state_uncategorized.update()
 
     # Initial null trigger on app start.
     elif len(trigger_id) == 0:

@@ -98,14 +98,14 @@ class _Database:
         transactions_with_categories = []
         for tx in transaction_list:
             category = self.get_category_by_name(tx.name)
-            if tx.category is not None and category is not None:
+            if tx.category != '__UNKNOWN__' and category != '__UNKNOWN__':
                 if tx.category != category:
                     raise ValueError(
                         f'Transaction with name "{tx.name}" passed to the '
                         f'database with category "{tx.category}" but this name '
                         f'is already associated with category "{category}".'
                     )
-            if category is None:
+            if category == '__UNKNOWN__':
                 category = tx.category
             transaction = Transaction(
                 date=tx.date,
@@ -122,7 +122,7 @@ class _Database:
             f'WHERE name="{name}"'
         ).fetchall()
         if len(category_list) == 0:
-            return None
+            return '__UNKNOWN__'
         assert len(set(category_list)) == 1
         return category_list[0][0]
     
@@ -134,10 +134,14 @@ class _Database:
         retval = [val[0] for val in result.fetchall()]
         return retval
     
-    def set_name_category(self, name, category) -> None:
+    def set_name_category(self, name: str, category: Optional[str]) -> None:
+        if category is None:
+            set_to = "NULL"
+        else:
+            set_to = f"'{category}'"
         self.cursor.execute(
-            f'UPDATE {self.table_name} '
-            f'SET category="{category}" WHERE name="{name}"'
+            f"UPDATE {self.table_name} "
+            f"SET category={set_to} WHERE name='{name}'"
         )
         self.connection.commit()
     
