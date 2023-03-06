@@ -117,8 +117,8 @@ class _Database:
 
     def get_category_by_name(self, name: str) -> Optional[str]:
         category_list = self.cursor.execute(
-            f"SELECT DISTINCT category FROM {self.table_name} "
-            f'WHERE name="{name}"'
+            f"SELECT DISTINCT category FROM {self.table_name} WHERE name=?",
+            (name,),
         ).fetchall()
         if len(category_list) == 0:
             return "__UNKNOWN__"
@@ -127,8 +127,8 @@ class _Database:
 
     def get_uncategorized_names(self) -> List[Transaction]:
         result = self.cursor.execute(
-            f"SELECT DISTINCT name FROM {self.table_name} "
-            "WHERE category = '__UNKNOWN__'"
+            f"SELECT DISTINCT name FROM {self.table_name} WHERE category=?",
+            ("__UNKNOWN__",),
         )
         retval = [val[0] for val in result.fetchall()]
         return retval

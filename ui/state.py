@@ -145,9 +145,14 @@ class Uncategorized:
 
         # Get one example of a matching transaction.
         with Database(self.db_path) as db:
-            result = db.cursor.execute(
+            print(
+                "DEBUG",
                 f"SELECT * FROM {db.table_name} "
-                f"WHERE name='{self._current_name}' LIMIT 1"
+                f"WHERE name='{self._current_name}' LIMIT 1",
+            )
+            result = db.cursor.execute(
+                f"SELECT * FROM {db.table_name} WHERE name=? LIMIT 1",
+                (self._current_name,),
             ).fetchall()
             tx_example = Transaction(*result[0])
 
