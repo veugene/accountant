@@ -122,9 +122,22 @@ app.layout = html.Div(
             ],
             style={'height': '80px'},
         ),
+        html.Div(
+            [
+                dcc.DatePickerRange(
+                    clearable=True,
+                ),
+                dcc.Dropdown(
+                    ['2020', '2021', '2022'],
+                    clearable=True,
+                ),
+            ],
+            style={'float': 'left',}
+        ),
         dcc.Graph(
             id='pie_chart',
             figure=state_pie_chart.fig,
+            style={'float': 'left'},
         ),
     ],
 )
