@@ -49,7 +49,7 @@ class Plot:
         ).set_index(
             'date'
         ).groupby(
-            [pd.Grouper(freq='M'), 'category']
+            [pd.Grouper(freq=self.interval), 'category']
         ).agg(
             {'amount': 'sum'}
         ).unstack().fillna(0).resample(
@@ -58,7 +58,12 @@ class Plot:
         
         # Simplify MultiIndex columns (amount, <category>) to just category names.
         df.columns = df.columns.get_level_values(1)
-        return px.line(df, x=df.index, y=df.columns)
+        fig = px.line(df, x=df.index, y=df.columns)
+        if interval == 'M':
+            fig.update_xaxes(tickangle=90, dtick='M1', tickformat="%b %Y")
+        else:
+            fig.update_xaxes(tickangle=90, dtick='Y1', tickformat="%Y")
+        return fig
 
     def get_df(self, category: Optional[str] = None) -> pd.DataFrame:
         if category is not None and category != self.category:
