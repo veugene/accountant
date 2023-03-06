@@ -257,7 +257,7 @@ def button_categorize_callback(
 
         # Create iterator if dialog is open.
         if set_is_open:
-            state_uncategorized.update()
+            state_uncategorized.reset()
 
     # Ignore button pressed. Set a None category.
     elif trigger_id == "button_ignore_modal_categorize":
@@ -265,7 +265,7 @@ def button_categorize_callback(
 
     # Skip button pressed. Skip to next iteration by doing nothing on this one.
     elif trigger_id == "button_skip_modal_categorize":
-        pass
+        state_uncategorized.skip()
 
     # If a radio item is selected within the modal dialog.
     elif trigger_id == "modal_categorize_radio_items":

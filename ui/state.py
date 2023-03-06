@@ -106,13 +106,18 @@ class Plot:
 class Uncategorized:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.update()
+        self._current_name = None
+        self.reset()
 
     def update(self):
         with Database(self.db_path) as db:
             self.uncategorized_names = db.get_uncategorized_names()
             self.category_list = db.get_all_categories()
             self._iter = iter(self.uncategorized_names)
+
+    def reset(self):
+        self.skip_names = set()
+        self.update()
 
     def get_names(self) -> List[str]:
         return self.uncategorized_names
@@ -123,9 +128,14 @@ class Uncategorized:
 
     def __next__(self):
         self._current_name = next(self._iter)
+        while self._current_name in self.skip_names:
+            self._current_name = next(self._iter)
         return self._current_name
 
     def set_category(self, category: str):
         with Database(self.db_path) as db:
             db.set_name_category(self._current_name, category)
         self.update()
+
+    def skip(self):
+        self.skip_names.add(self._current_name)
