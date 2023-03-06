@@ -183,3 +183,26 @@ class Uncategorized:
         with Database(self.db_path) as db:
             db.set_name_category(previous_name, "__UNKNOWN__")
         self.update()
+
+
+class DiffTable:
+    def __init__(self):
+        self.data = None
+
+    def reset(self):
+        self.data = None
+
+    def diff(self, data):
+        """
+        First stores the DataTable data list if it hasn't already. Then, on the
+        next call, compares the data lists together and finds the first difference.
+        Only the category is expected to change.
+        """
+        if self.data is None:
+            self.data = data
+            return None
+
+        assert len(data) == len(self.data)
+        for new, old in zip(data, self.data):
+            if new["category"] != old["category"]:
+                return new

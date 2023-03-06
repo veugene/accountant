@@ -14,12 +14,13 @@ from dash.dependencies import Input, Output, State
 
 from database import Database, Transaction
 from parsing import parse_csv
-from ui.state import Plot, Uncategorized
+from ui.state import DiffTable, Plot, Uncategorized
 
 # Database path is hardcoded.
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
+state_table = DiffTable()
 state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
 
@@ -65,6 +66,7 @@ app.layout = html.Div(
         html.Div(id="dummy_checklist_output", style={"display": "none"}),
         html.Div(id="dummy_picker_output", style={"display": "none"}),
         html.Div(id="dummy_dropdown_output", style={"display": "none"}),
+        html.Div(id="dummy_table_output", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -211,6 +213,12 @@ app.layout = html.Div(
         ),
         html.Div(
             id="category_contents",
+            children=[
+                dash_table.DataTable(
+                    id="editable_transaction_table",
+                    columns=[{"name": "empty", "id": "empty"}],
+                )
+            ],
             style={"width": "31%", "float": "left", "margin": "1%"},
         ),
     ],
@@ -349,8 +357,37 @@ def click_pie_chart_callback(click_data):
             "ORDER BY date DESC",
             db.connection,
         )
+
+    # Create a table where the 'category' column is editable and has a dropdown
+    # menu to select the category.
+    state_table.reset()  # Creating new table. Clear table cache.
+    dropdown_options = [
+        {"label": i, "value": i} for i in state_uncategorized.get_categories()
+    ]
+    columns = []
+    for c in df.columns:
+        if c == "category":
+            columns.append(
+                {
+                    "name": c,
+                    "id": c,
+                    "editable": True,
+                    "presentation": "dropdown",
+                }
+            )
+        else:
+            columns.append({"name": c, "id": c})
     table = dash_table.DataTable(
-        df.to_dict("records"), [{"name": i, "id": i} for i in df.columns]
+        id="editable_transaction_table",
+        data=df.to_dict("records"),
+        columns=columns,
+        dropdown={"category": {"options": dropdown_options}},
+        css=[
+            {
+                "selector": ".Select-menu-outer",
+                "rule": "display: block !important",
+            }
+        ],  # github.com/plotly/dash-table/issues/221
     )
     return [table]
 
@@ -387,6 +424,21 @@ def date_picker_range_callback(value):
         state_plot.set_date_range(f"{value}-01-01", f"{value}-12-31")
     else:
         state_plot.set_date_range(None, None)
+    return None
+
+
+@app.callback(
+    Output("dummy_table_output", "children"),
+    Input("editable_transaction_table", "data"),
+)
+def transaction_table_category_change_callback(data):
+    diff = state_table.diff(data)
+    if diff is not None:
+        with Database(DB_PATH) as db:
+            db.set_name_category(
+                name=diff["name"],
+                category=diff["category"],
+            )
     return None
 
 
