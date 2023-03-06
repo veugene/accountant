@@ -251,6 +251,7 @@ def button_plot_callback(n_clicks):
     Output("modal_categorize_message", "children"),
     Output("modal_categorize_radio_items", "options"),
     Output("modal_categorize_radio_items", "value"),
+    Output("modal_categorize_text", "value"),
     Input("button_categorize", "n_clicks"),
     Input("button_ignore_modal_categorize", "n_clicks"),
     Input("button_undo_modal_categorize", "n_clicks"),
@@ -299,7 +300,9 @@ def button_categorize_callback(
 
     # Entered a new category.
     elif trigger_id == "modal_categorize_text":
-        state_uncategorized.set_category(new_category)
+        if new_category != "":
+            # Avoid empty string category. Do nothing.
+            state_uncategorized.set_category(new_category)
 
     # Initial null trigger on app start.
     elif len(trigger_id) == 0:
@@ -312,7 +315,7 @@ def button_categorize_callback(
     # Update the message and radio items options.
     message, options = get_next_modal_body()
 
-    return set_is_open, message, options, None
+    return set_is_open, message, options, None, ""
 
 
 @app.callback(
