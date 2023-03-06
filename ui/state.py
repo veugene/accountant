@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 from plotly.graph_objects import Figure
@@ -12,6 +13,8 @@ class Plot:
         self.db_path = db_path
         self.category = '*'
         self.interval = 'MS'
+        self.start_date = None
+        self.end_date = None
         self.update()
 
     def set_category(self, category: str) -> None:
@@ -25,19 +28,28 @@ class Plot:
         self.interval = interval
         self.fig_line = self.make_line()
     
+    def set_date_range(self, start_date: str, end_date: str):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.update()
+    
     def get_category(self) -> str:
         return self.category
 
     def update(self) -> None:
         with Database(self.db_path) as db:
             if self.category == 'NULL':
-                query = f'SELECT * FROM {db.table_name} WHERE category IS NULL'
+                query = f"SELECT * FROM {db.table_name} WHERE category IS NULL"
             elif self.category == '*':
-                query = f'SELECT * FROM {db.table_name}'
+                query = f"SELECT * FROM {db.table_name} WHERE NULL IS NULL"
             else:
                 query = (
-                    f'SELECT * FROM {db.table_name} WHERE category={self.category}'
+                    f"SELECT * FROM {db.table_name} WHERE category={self.category}"
                 )
+            if self.start_date is not None:
+                query += f" AND date >= '{self.start_date}'"
+            if self.end_date is not None:
+                query += f" AND date <= '{self.end_date}'"
             self.df = pd.read_sql_query(query, db.connection)
             self.df['date'] = pd.to_datetime(self.df.date, format='%Y-%m-%d')
         self.fig_pie = px.pie(self.df, values='amount', names='category')
@@ -89,6 +101,9 @@ class Plot:
         if category is not None and category != self.category:
             self.set_category(category)
         return self.fig_line
+    
+    def get_year_list(self) -> List[int]:
+        return list(self.df.groupby(self.df.date.dt.year)['date'].max().index)
 
 
 class Uncategorized:

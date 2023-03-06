@@ -47,6 +47,8 @@ app.layout = html.Div(
         ),
         html.Div(id="dummy_button_plot_output", style={"display": "none"}),
         html.Div(id="dummy_checklist_output", style={"display": "none"}),
+        html.Div(id="dummy_picker_output", style={"display": "none"}),
+        html.Div(id="dummy_dropdown_output", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -146,10 +148,12 @@ app.layout = html.Div(
         html.Div(
             [
                 dcc.DatePickerRange(
+                    id='date_picker_range',
                     clearable=True,
                 ),
                 dcc.Dropdown(
-                    ["2020", "2021", "2022"],
+                    id='year_dropdown',
+                    options=state_plot.get_year_list(),
                     clearable=True,
                 ),
                 dcc.Checklist(id='checklist_annual', options=['Annual']),
@@ -286,6 +290,16 @@ def checklist_annual_callback(value):
             state_plot.set_interval('YS')
         else:
             state_plot.set_interval('MS')
+    return None
+
+
+@app.callback(
+    Output("dummy_picker_output", "children"),
+    Input("date_picker_range", "start_date"),
+    Input("date_picker_range", "end_date"),
+)
+def date_picker_range_callback(start_date, end_date):
+    state_plot.set_date_range(start_date, end_date)
     return None
 
 
