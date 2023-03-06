@@ -139,6 +139,7 @@ class Uncategorized:
 
     def get_name_to_process(self) -> Tuple[str, Transaction]:
         if self._idx >= len(self.uncategorized_names):
+            self.reset()
             raise StopIteration
         self._current_name = self.uncategorized_names[self._idx]
         while self._current_name in self._history:

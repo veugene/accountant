@@ -278,10 +278,6 @@ def button_categorize_callback(
         if n_clicks_open:
             set_is_open = not set_is_open
 
-        # Create iterator if dialog is open.
-        if set_is_open:
-            state_uncategorized.reset()
-
     # Ignore button pressed. Set a None category.
     elif trigger_id == "button_ignore_modal_categorize":
         state_uncategorized.set_category(None)
