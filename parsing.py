@@ -53,7 +53,7 @@ def parse_line(csv_line):
         # Rogers Mastercard
         return Transaction(
             date=csv_line[0],
-            name=csv_line[6],
+            name=csv_line[7],
             amount=string_to_float(csv_line[11]),
         )
     return None
