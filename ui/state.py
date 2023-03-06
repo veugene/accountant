@@ -114,16 +114,18 @@ class Uncategorized:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._current_name = None
+        self._history = {}
         self.reset()
 
     def update(self):
         with Database(self.db_path) as db:
             self.uncategorized_names = db.get_uncategorized_names()
             self.category_list = db.get_all_categories()
-            self._iter = iter(self.uncategorized_names)
+            self._idx = 0
 
     def reset(self):
-        self.skip_names = set()
+        self._current_name = None
+        self._history = {}
         self.update()
 
     def get_names(self) -> List[str]:
@@ -133,16 +135,35 @@ class Uncategorized:
         category_list = [c for c in self.category_list if c != "__UNKNOWN__"]
         return category_list
 
-    def __next__(self):
-        self._current_name = next(self._iter)
-        while self._current_name in self.skip_names:
-            self._current_name = next(self._iter)
+    def get_name_to_process(self):
+        if self._idx >= len(self.uncategorized_names):
+            raise StopIteration
+        self._current_name = self.uncategorized_names[self._idx]
+        while self._current_name in self._history:
+            self._idx += 1
+            self._current_name = self.uncategorized_names[self._idx]
         return self._current_name
 
     def set_category(self, category: str):
         with Database(self.db_path) as db:
             db.set_name_category(self._current_name, category)
+        self._history[self._current_name] = category
+        self._idx += 1
         self.update()
 
     def skip(self):
-        self.skip_names.add(self._current_name)
+        self._history[self._current_name] = "__UNKNOWN__"
+        self._idx += 1
+
+    def undo(self):
+        if len(self._history) == 0:
+            return
+
+        previous_name = list(self._history.keys())[-1]
+        category = self._history.pop(previous_name)
+        if self._idx > 0:
+            self._idx -= 1
+        self._current_name = previous_name
+        with Database(self.db_path) as db:
+            db.set_name_category(self._current_name, "__UNKNOWN__")
+        self.update()

@@ -27,7 +27,7 @@ state_uncategorized = Uncategorized(DB_PATH)
 # Modal dialogue uses state.
 def get_next_modal_body():
     try:
-        name = next(state_uncategorized)
+        name = state_uncategorized.get_name_to_process()
     except StopIteration:
         message = "No uncategorized transactions"
         options = []
@@ -125,6 +125,15 @@ app.layout = html.Div(
                                     dbc.Button(
                                         "Skip",
                                         id="button_skip_modal_categorize",
+                                        className="ms-auto",
+                                        style={
+                                            "margin": "1%",
+                                            "float": "right",
+                                        },
+                                    ),
+                                    dbc.Button(
+                                        "Undo",
+                                        id="button_undo_modal_categorize",
                                         className="ms-auto",
                                         style={
                                             "margin": "1%",
@@ -244,6 +253,7 @@ def button_plot_callback(n_clicks):
     Output("modal_categorize_radio_items", "value"),
     Input("button_categorize", "n_clicks"),
     Input("button_ignore_modal_categorize", "n_clicks"),
+    Input("button_undo_modal_categorize", "n_clicks"),
     Input("button_skip_modal_categorize", "n_clicks"),
     State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
@@ -252,6 +262,7 @@ def button_plot_callback(n_clicks):
 def button_categorize_callback(
     n_clicks_open,
     n_clicks_ignore,
+    n_clicks_undo,
     n_clicks_skip,
     is_open,
     category,
@@ -273,6 +284,10 @@ def button_categorize_callback(
     # Ignore button pressed. Set a None category.
     elif trigger_id == "button_ignore_modal_categorize":
         state_uncategorized.set_category(None)
+
+    # Undo previous action.
+    elif trigger_id == "button_undo_modal_categorize":
+        state_uncategorized.undo()
 
     # Skip button pressed. Skip to next iteration by doing nothing on this one.
     elif trigger_id == "button_skip_modal_categorize":
