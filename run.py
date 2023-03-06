@@ -27,12 +27,12 @@ state_uncategorized = Uncategorized(DB_PATH)
 # Modal dialogue uses state.
 def get_next_modal_body():
     try:
-        name = state_uncategorized.get_name_to_process()
+        name, tx_example = state_uncategorized.get_name_to_process()
     except StopIteration:
         message = "No uncategorized transactions"
         options = []
     else:
-        message = html.I(name)
+        message = [html.I(name), f" ---> [eg. {tx_example.amount}]"]
         options = state_uncategorized.get_categories()
     return message, options
 

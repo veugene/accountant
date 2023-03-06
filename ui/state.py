@@ -1,11 +1,11 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 from plotly.graph_objects import Figure
 
-from database import Database
+from database import Database, Transaction
 
 
 class Plot:
@@ -135,14 +135,23 @@ class Uncategorized:
         category_list = [c for c in self.category_list if c != "__UNKNOWN__"]
         return category_list
 
-    def get_name_to_process(self):
+    def get_name_to_process(self) -> Tuple[str, Transaction]:
         if self._idx >= len(self.uncategorized_names):
             raise StopIteration
         self._current_name = self.uncategorized_names[self._idx]
         while self._current_name in self._history:
             self._idx += 1
             self._current_name = self.uncategorized_names[self._idx]
-        return self._current_name
+
+        # Get one example of a matching transaction.
+        with Database(self.db_path) as db:
+            result = db.cursor.execute(
+                f"SELECT * FROM {db.table_name} "
+                f"WHERE name='{self._current_name}' LIMIT 1"
+            ).fetchall()
+            tx_example = Transaction(*result[0])
+
+        return self._current_name, tx_example
 
     def set_category(self, category: str):
         with Database(self.db_path) as db:
