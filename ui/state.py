@@ -43,7 +43,10 @@ class Plot:
                     f"SELECT * FROM {db.table_name} WHERE category IS NOT NULL"
                 )
             else:
-                query = f"SELECT * FROM {db.table_name} WHERE category={self.category}"
+                query = (
+                    f"SELECT * FROM {db.table_name} "
+                    f"WHERE category={self.category}"
+                )
             if self.start_date is not None:
                 query += f" AND date >= '{self.start_date}'"
             if self.end_date is not None:
@@ -53,8 +56,12 @@ class Plot:
         self.fig_pie = px.pie(self.df, values="amount", names="category")
         self.fig_line = self.make_line()
 
-    def make_line(self):
+    def make_line(self) -> Figure:
         assert self.interval in ["MS", "YS"]
+
+        # Empty figure.
+        if len(self.df) == 0:
+            return px.line(self.df, x="date", y=[])
 
         # Group amounts by category, interpolate index by time interval, and
         # within each interval, sum all the amounts of each category.
