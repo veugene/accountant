@@ -345,11 +345,16 @@ def click_pie_chart_callback(click_data):
     if click_data is None:
         return []
 
+    # Get a list of the transactions in that category.
     category = click_data["points"][0]["label"]
     if category == "null":
         category_query = "category IS NULL"
     else:
         category_query = f'category="{category}"'
+    if state_plot.start_date is not None:
+        category_query += f" AND date >= '{state_plot.start_date}'"
+    if state_plot.end_date is not None:
+        category_query += f" AND date <= '{state_plot.end_date}'"
     with Database(DB_PATH) as db:
         df = pd.read_sql_query(
             f"SELECT * FROM {db.table_name} WHERE {category_query} "
