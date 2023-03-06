@@ -303,5 +303,17 @@ def date_picker_range_callback(start_date, end_date):
     return None
 
 
+@app.callback(
+    Output("dummy_dropdown_output", "children"),
+    Input("year_dropdown", "value"),
+)
+def date_picker_range_callback(value):
+    if value is not None:
+        state_plot.set_date_range(f'{value}-01-01', f'{value}-12-31')
+    else:
+        state_plot.set_date_range(None, None)
+    return None
+
+
 if __name__ == "__main__":
     app.run_server(debug=True)
