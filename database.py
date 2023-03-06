@@ -139,8 +139,8 @@ class _Database:
         else:
             set_to = f"'{category}'"
         self.cursor.execute(
-            f"UPDATE {self.table_name} "
-            f"SET category={set_to} WHERE name='{name}'"
+            f"UPDATE {self.table_name} SET category={set_to} WHERE name=?",
+            (name,),
         )
         self.connection.commit()
 
