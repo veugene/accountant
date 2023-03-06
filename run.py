@@ -14,13 +14,13 @@ from dash.dependencies import Input, Output, State
 
 from database import Database, Transaction
 from parsing import parse_csv
-from ui.state import PieChart, Uncategorized
+from ui.state import Plot, Uncategorized
 
 # Database path is hardcoded.
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
-state_pie_chart = PieChart(DB_PATH)
+state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
 
 
@@ -128,7 +128,12 @@ app.layout = html.Div(
         ),
         dcc.Graph(
             id="pie_chart",
-            figure=state_pie_chart.fig,
+            figure=state_plot.get_fig_pie(),
+            style={"float": "left"},
+        ),
+        dcc.Graph(
+            id="line_plot",
+            figure=state_plot.get_fig_line(),
             style={"float": "left"},
         ),
         html.Div(
@@ -196,8 +201,9 @@ def upload_csv_callback(contents_list):
 )
 def button_plot_callback(n_clicks):
     # Update figure.
-    state_pie_chart.update()
-    return state_pie_chart.get_fig()
+    if n_clicks is not None:
+        state_plot.update()
+    return state_plot.get_fig_pie()
 
 
 @app.callback(
@@ -238,10 +244,6 @@ def button_categorize_callback(
 
     # Update the message and radio items options.
     message, options = get_modal_body()
-
-    # Update figure.
-    state_pie_chart.update()
-    fig = state_pie_chart.get_fig()
 
     return set_is_open, message, options, None
 

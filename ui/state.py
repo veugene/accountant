@@ -7,10 +7,11 @@ from plotly.graph_objects import Figure
 from database import Database
 
 
-class PieChart:
+class Plot:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.category = '*'
+        self.interval = 'M'
         self.update()
 
     def set_category(self, category: str) -> None:
@@ -33,17 +34,46 @@ class PieChart:
                     f'SELECT * FROM {db.table_name} WHERE category={self.category}'
                 )
             self.df = pd.read_sql_query(query, db.connection)
-        self.fig = px.pie(self.df, values='amount', names='category')
+            self.df['date'] = pd.to_datetime(self.df.date, format='%Y-%m-%d')
+        self.fig_pie = px.pie(self.df, values='amount', names='category')
+        self.fig_line = self.make_line(self.interval)
+    
+    def make_line(self, interval: str = 'M'):
+        assert interval in ['M', 'Y']
+        self.interval = interval
+        
+        # Group amounts by category, interpolate index by time interval, and
+        # within each interval, sum all the amounts of each category.
+        df = self.df.fillna(
+            'null'
+        ).set_index(
+            'date'
+        ).groupby(
+            [pd.Grouper(freq='M'), 'category']
+        ).agg(
+            {'amount': 'sum'}
+        ).unstack().fillna(0).resample(
+            self.interval
+        ).sum()
+        
+        # Simplify MultiIndex columns (amount, <category>) to just category names.
+        df.columns = df.columns.get_level_values(1)
+        return px.line(df, x=df.index, y=df.columns)
 
     def get_df(self, category: Optional[str] = None) -> pd.DataFrame:
         if category is not None and category != self.category:
             self.set_category(category)
         return self.df
 
-    def get_fig(self, category: Optional[str] = None) -> Figure:
+    def get_fig_pie(self, category: Optional[str] = None) -> Figure:
         if category is not None and category != self.category:
             self.set_category(category)
-        return self.fig
+        return self.fig_pie
+    
+    def get_fig_line(self, category: Optional[str] = None) -> Figure:
+        if category is not None and category != self.category:
+            self.set_category(category)
+        return self.fig_line
 
 
 class Uncategorized:
