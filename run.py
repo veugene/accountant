@@ -25,7 +25,7 @@ state_uncategorized = Uncategorized(DB_PATH)
 
 
 # Modal dialogue uses state.
-def get_modal_body():
+def get_next_modal_body():
     try:
         name = next(state_uncategorized)
     except StopIteration:
@@ -116,8 +116,8 @@ app.layout = html.Div(
                         ),
                         dbc.ModalFooter(
                             dbc.Button(
-                                "Close",
-                                id="button_close_modal_categorize",
+                                "Skip",
+                                id="button_skip_modal_categorize",
                                 className="ms-auto",
                             )
                         ),
@@ -219,7 +219,7 @@ def button_plot_callback(n_clicks):
     Output("modal_categorize_radio_items", "options"),
     Output("modal_categorize_radio_items", "value"),
     Input("button_categorize", "n_clicks"),
-    Input("button_close_modal_categorize", "n_clicks"),
+    Input("button_skip_modal_categorize", "n_clicks"),
     State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
 )
@@ -229,12 +229,19 @@ def button_categorize_callback(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     set_is_open = is_open
-    state_uncategorized.update()
 
     # If the modal dialog is toggled.
-    if trigger_id in ["button_categorize", "button_close_modal_categorize"]:
+    if trigger_id == "button_categorize":
         if n_clicks_open or n_clicks_close:
             set_is_open = not set_is_open
+    
+        # Create iterator if dialog is open.
+        if set_is_open:
+            state_uncategorized.update()
+
+    # Skip button pressed. Skip to next iteration by doing nothing on this one.
+    elif trigger_id == "button_skip_modal_categorize":
+        pass
 
     # If a radio item is selected within the modal dialog.
     elif trigger_id == "modal_categorize_radio_items":
@@ -250,7 +257,7 @@ def button_categorize_callback(
         raise Exception(f"Unexpected callback trigger: {trigger_id}")
 
     # Update the message and radio items options.
-    message, options = get_modal_body()
+    message, options = get_next_modal_body()
 
     return set_is_open, message, options, None
 
