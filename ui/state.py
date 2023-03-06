@@ -154,7 +154,11 @@ class Uncategorized:
             ).fetchall()
             tx_example = Transaction(*result[0])
 
-        return self._current_name, tx_example
+        # Count progress.
+        n_done = len(self._history)
+        n_total = len(self.uncategorized_names)
+
+        return self._current_name, tx_example, n_done, n_total
 
     def set_category(self, category: str):
         with Database(self.db_path) as db:
