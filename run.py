@@ -14,13 +14,13 @@ from dash.dependencies import Input, Output, State
 
 from database import Database, Transaction
 from parsing import parse_csv
-from ui.state import DiffTable, Plot, Uncategorized
+from ui.state import Plot, Table, Uncategorized
 
 # Database path is hardcoded.
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
-state_table = DiffTable()
+state_table = Table(DB_PATH)
 state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
 
@@ -58,7 +58,6 @@ def get_next_modal_body():
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div(
     children=[
-        html.Div(id="dummy_upload_csv_output", style={"display": "none"}),
         html.Div(
             id="dummy_button_categorize_output", style={"display": "none"}
         ),
@@ -225,12 +224,13 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("dummy_upload_csv_output", "children"),
+    Output("year_dropdown", "options"),
     Input("upload_csv", "contents"),
+    State("year_dropdown", "options"),
 )
-def upload_csv_callback(contents_list):
+def upload_csv_callback(contents_list, year_options):
     if contents_list is None:
-        return None
+        return year_options
 
     # Parse all transactions from csv files.
     transaction_import_list = []
@@ -254,7 +254,11 @@ def upload_csv_callback(contents_list):
     with Database(DB_PATH) as db:
         db.add_transactions(transaction_import_list)
 
-    return None
+    # Update year options in dropdown.
+    state_plot.update()
+    year_options = state_plot.get_year_list()
+
+    return year_options
 
 
 @app.callback(
@@ -331,6 +335,10 @@ def button_categorize_callback(
     else:
         raise Exception(f"Unexpected callback trigger: {trigger_id}")
 
+    # When closing this modal, update category list for table.
+    if set_is_open == False:
+        state_table.set_category_options(state_uncategorized.get_categories())
+
     # Update the message and radio items options.
     message, options = get_next_modal_body()
 
@@ -340,60 +348,24 @@ def button_categorize_callback(
 @app.callback(
     Output("category_contents", "children"),
     Input(component_id="pie_chart", component_property="clickData"),
+    Input("date_picker_range", "start_date"),
+    Input("date_picker_range", "end_date"),
+    Input("year_dropdown", "value"),
 )
-def click_pie_chart_callback(click_data):
-    if click_data is None:
-        return []
-
-    # Get a list of the transactions in that category.
-    category = click_data["points"][0]["label"]
-    if category == "null":
-        category_query = "category IS NULL"
-    else:
-        category_query = f'category="{category}"'
-    if state_plot.start_date is not None:
-        category_query += f" AND date >= '{state_plot.start_date}'"
-    if state_plot.end_date is not None:
-        category_query += f" AND date <= '{state_plot.end_date}'"
-    with Database(DB_PATH) as db:
-        df = pd.read_sql_query(
-            f"SELECT * FROM {db.table_name} WHERE {category_query} "
-            "ORDER BY date DESC",
-            db.connection,
-        )
-
-    # Create a table where the 'category' column is editable and has a dropdown
-    # menu to select the category.
-    state_table.reset()  # Creating new table. Clear table cache.
-    dropdown_options = [
-        {"label": i, "value": i} for i in state_uncategorized.get_categories()
-    ]
-    columns = []
-    for c in df.columns:
-        if c == "category":
-            columns.append(
-                {
-                    "name": c,
-                    "id": c,
-                    "editable": True,
-                    "presentation": "dropdown",
-                }
-            )
+def click_pie_chart_callback(click_data, start_date, end_date, year):
+    trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    print("DEBUG TRIGGER", trigger_id)
+    if trigger_id == "pie_chart":
+        if click_data is None:
+            state_table.reset()
         else:
-            columns.append({"name": c, "id": c})
-    table = dash_table.DataTable(
-        id="editable_transaction_table",
-        data=df.to_dict("records"),
-        columns=columns,
-        dropdown={"category": {"options": dropdown_options}},
-        css=[
-            {
-                "selector": ".Select-menu-outer",
-                "rule": "display: block !important",
-            }
-        ],  # github.com/plotly/dash-table/issues/221
-    )
-    return [table]
+            category = click_data["points"][0]["label"]
+            state_table.set_category(category)
+    if trigger_id == "date_picker_range":
+        state_table.set_date_range(start_date, end_date)
+    if trigger_id == "year_dropdown":
+        state_table.set_year(year)
+    return [state_table.get_table()]
 
 
 @app.callback(
@@ -425,13 +397,8 @@ def date_picker_range_callback(start_date, end_date):
     Input("year_dropdown", "value"),
 )
 def date_picker_range_callback(value):
-    if value is not None:
-        start_date = f"{value}-01-01"
-        end_date = f"{value}-12-31"
-    else:
-        start_date = end_date = None
-    state_plot.set_date_range(start_date, end_date)
-    return start_date, end_date
+    state_plot.set_year(value)
+    return state_plot.start_date, state_plot.end_date
 
 
 @app.callback(
@@ -439,6 +406,8 @@ def date_picker_range_callback(value):
     Input("editable_transaction_table", "data"),
 )
 def transaction_table_category_change_callback(data):
+    if data is None:
+        return
     diff = state_table.diff(data)
     if diff is not None:
         with Database(DB_PATH) as db:
@@ -446,7 +415,7 @@ def transaction_table_category_change_callback(data):
                 name=diff["name"],
                 category=diff["category"],
             )
-    return None
+    return
 
 
 if __name__ == "__main__":

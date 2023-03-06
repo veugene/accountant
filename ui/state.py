@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 import plotly.express as px
+from dash import Dash, dash_table, dcc, html
 from plotly.graph_objects import Figure
 
 from database import Database, Transaction
@@ -32,6 +33,14 @@ class Plot:
         self.start_date = start_date
         self.end_date = end_date
         self.update()
+
+    def set_year(self, year: str):
+        if year is not None:
+            start_date = f"{year}-01-01"
+            end_date = f"{year}-12-31"
+        else:
+            start_date = end_date = None
+        self.set_date_range(start_date, end_date)
 
     def get_category(self) -> str:
         return self.category
@@ -185,12 +194,96 @@ class Uncategorized:
         self.update()
 
 
-class DiffTable:
-    def __init__(self):
+class Table:
+    def __init__(self, db_path: str):
+        self.db_path = db_path
         self.data = None
+        self.category = "*"
+        self.start_date = None
+        self.end_date = None
+        self.category_options = []
 
     def reset(self):
+        self.category = "*"
+        self.update()
+
+    def set_category(self, category: str) -> None:
+        if category == self.category:
+            return
+        self.category = category
+        self.update()
+
+    def set_category_options(self, category_options: List[str]):
+        self.category_options = category_options
+
+    def set_date_range(self, start_date: str, end_date: str):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.update()
+
+    def set_year(self, year: str):
+        if year is not None:
+            start_date = f"{year}-01-01"
+            end_date = f"{year}-12-31"
+        else:
+            start_date = end_date = None
+        self.set_date_range(start_date, end_date)
+
+    def update(self):
+        # Updating table, delete 'data' cache that is used to detect if the
+        # existing table was modified.
         self.data = None
+
+        # Query
+        if self.category == "*":
+            category_query = "category IS NOT NULL"
+        else:
+            category_query = f'category="{self.category}"'
+        if self.start_date is not None:
+            category_query += f" AND date >= '{self.start_date}'"
+        if self.end_date is not None:
+            category_query += f" AND date <= '{self.end_date}'"
+        with Database(self.db_path) as db:
+            df = pd.read_sql_query(
+                f"SELECT * FROM {db.table_name} WHERE {category_query} "
+                "ORDER BY date DESC",
+                db.connection,
+            )
+
+        # Create a table where the 'category' column is editable and has a
+        # dropdown menu to select the category.
+        dropdown_options = [
+            {"label": i, "value": i} for i in self.category_options
+        ]
+        columns = []
+        for c in df.columns:
+            if c == "category":
+                columns.append(
+                    {
+                        "name": c,
+                        "id": c,
+                        "editable": True,
+                        "presentation": "dropdown",
+                    }
+                )
+            else:
+                columns.append({"name": c, "id": c})
+        table = dash_table.DataTable(
+            id="editable_transaction_table",
+            data=df.to_dict("records"),
+            columns=columns,
+            dropdown={"category": {"options": dropdown_options}},
+            css=[
+                {
+                    "selector": ".Select-menu-outer",
+                    "rule": "display: block !important",
+                }
+            ],  # github.com/plotly/dash-table/issues/221
+        )
+        self.table = table
+
+    def get_table(self):
+        return self.table
 
     def diff(self, data):
         """
