@@ -1,6 +1,8 @@
 import sqlite3
 import warnings
+from datetime import date
 from pathlib import Path
+from shutil import copy
 from typing import List, NamedTuple, Optional, Tuple, Union
 
 
@@ -156,3 +158,37 @@ class _Database:
         )
         retval = [val[0] for val in result.fetchall() if val[0] is not None]
         return retval
+
+    def backup(self):
+        """
+        Find the last numbered backup file for the day and increment that
+        number. Then save a backup.
+
+        Format: "{filename}.backup_{date}_{number}"
+
+        Example: "db.sql.backup_2023-03-06_0001"
+
+        It is possible that a file may exist that matches up to 'number' but
+        with a suffix that does not cast to a number. For this reason, loop
+        over the file candidates to find the last matching backup file for
+        the day.
+        """
+        date_string = date.today().strftime("%Y-%m-%d")
+        name_root = f"{self.database_file_path.name}.backup_{date_string}_"
+        backup_file_list = list(
+            self.database_file_path.parent.glob(f"{name_root}*")
+        )
+        last_backup_num = 0
+        for fn in sorted(backup_file_list)[::-1]:
+            suffix = str(fn.name).replace(name_root, "")
+            try:
+                last_backup_num = int(suffix)
+            except ValueError:
+                continue
+            else:
+                break
+        backup_fn = f"{name_root}{last_backup_num + 1}"
+        copy(
+            self.database_file_path,
+            Path(self.database_file_path.parent, backup_fn),
+        )

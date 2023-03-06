@@ -450,4 +450,9 @@ def transaction_table_category_change_callback(data):
 
 
 if __name__ == "__main__":
+    # Make a backup.
+    with Database(DB_PATH) as db:
+        db.backup()
+
+    # Run app.
     app.run_server(debug=True)
