@@ -112,6 +112,11 @@ app.layout = html.Div(
                                     labelStyle={"display": "block"},
                                     id="modal_categorize_radio_items",
                                 ),
+                                dcc.Input(
+                                    type="text",
+                                    debounce=True,
+                                    id="modal_categorize_text",
+                                ),
                             ],
                         ),
                         dbc.ModalFooter(
@@ -242,9 +247,15 @@ def button_plot_callback(n_clicks):
     Input("button_skip_modal_categorize", "n_clicks"),
     State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
+    Input("modal_categorize_text", "value"),
 )
 def button_categorize_callback(
-    n_clicks_open, n_clicks_ignore, n_clicks_skip, is_open, category
+    n_clicks_open,
+    n_clicks_ignore,
+    n_clicks_skip,
+    is_open,
+    category,
+    new_category,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
@@ -270,6 +281,10 @@ def button_categorize_callback(
     # If a radio item is selected within the modal dialog.
     elif trigger_id == "modal_categorize_radio_items":
         state_uncategorized.set_category(category)
+
+    # Entered a new category.
+    elif trigger_id == "modal_categorize_text":
+        state_uncategorized.set_category(new_category)
 
     # Initial null trigger on app start.
     elif len(trigger_id) == 0:
