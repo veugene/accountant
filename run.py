@@ -121,17 +121,23 @@ app.layout = html.Div(
                                         "Skip",
                                         id="button_skip_modal_categorize",
                                         className="ms-auto",
-                                        style={'margin': '1%', "float": "right"},
+                                        style={
+                                            "margin": "1%",
+                                            "float": "right",
+                                        },
                                     ),
                                     dbc.Button(
                                         "Ignore",
                                         id="button_ignore_modal_categorize",
                                         className="ms-auto",
-                                        color='danger',
-                                        style={'margin': '1%', "float": "right"},
+                                        color="danger",
+                                        style={
+                                            "margin": "1%",
+                                            "float": "right",
+                                        },
                                     ),
                                 ],
-                                style={'width': '100%'},
+                                style={"width": "100%"},
                             ),
                         ),
                     ],
@@ -161,15 +167,15 @@ app.layout = html.Div(
         html.Div(
             [
                 dcc.DatePickerRange(
-                    id='date_picker_range',
+                    id="date_picker_range",
                     clearable=True,
                 ),
                 dcc.Dropdown(
-                    id='year_dropdown',
+                    id="year_dropdown",
                     options=state_plot.get_year_list(),
                     clearable=True,
                 ),
-                dcc.Checklist(id='checklist_annual', options=['Annual']),
+                dcc.Checklist(id="checklist_annual", options=["Annual"]),
             ],
             style={"float": "left", "margin": "1%"},
         ),
@@ -248,11 +254,11 @@ def button_categorize_callback(
     if trigger_id == "button_categorize":
         if n_clicks_open:
             set_is_open = not set_is_open
-    
+
         # Create iterator if dialog is open.
         if set_is_open:
             state_uncategorized.update()
-    
+
     # Ignore button pressed. Set a None category.
     elif trigger_id == "button_ignore_modal_categorize":
         state_uncategorized.set_category(None)
@@ -311,9 +317,9 @@ def click_pie_chart_callback(click_data):
 def checklist_annual_callback(value):
     if value is not None:
         if len(value):
-            state_plot.set_interval('YS')
+            state_plot.set_interval("YS")
         else:
-            state_plot.set_interval('MS')
+            state_plot.set_interval("MS")
     return None
 
 
@@ -333,7 +339,7 @@ def date_picker_range_callback(start_date, end_date):
 )
 def date_picker_range_callback(value):
     if value is not None:
-        state_plot.set_date_range(f'{value}-01-01', f'{value}-12-31')
+        state_plot.set_date_range(f"{value}-01-01", f"{value}-12-31")
     else:
         state_plot.set_date_range(None, None)
     return None

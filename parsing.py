@@ -1,4 +1,5 @@
 import csv
+
 from database import Transaction
 
 
@@ -36,9 +37,9 @@ def parse_line(csv_line):
             amount=string_to_float(csv_line[4]),
         )
     return None
-        
+
 
 def string_to_float(string):
-    if string == '':
-        return 0.
-    return float(string.strip('$'))
+    if string == "":
+        return 0.0
+    return float(string.strip("$"))
