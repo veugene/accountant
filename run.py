@@ -29,6 +29,7 @@ def get_next_modal_body():
     try:
         (
             name,
+            count,
             tx_example,
             n_done,
             n_total,
@@ -38,9 +39,15 @@ def get_next_modal_body():
         options = []
     else:
         message = [
-            f"[{n_done} / {n_total}]: ",
-            html.I(name),
-            f" ---> [eg. {tx_example.amount}]",
+            html.P(
+                [
+                    html.I(name),
+                    html.Br(),
+                    html.Br(),
+                    f"Name {n_done} / {n_total}; {count} occurrences. "
+                    f"Example transaction amount: {tx_example.amount}",
+                ]
+            ),
         ]
         options = state_uncategorized.get_categories()
     return message, options

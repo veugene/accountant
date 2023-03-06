@@ -1,7 +1,7 @@
 import sqlite3
 import warnings
 from pathlib import Path
-from typing import List, NamedTuple, Optional, Union
+from typing import List, NamedTuple, Optional, Tuple, Union
 
 
 class Transaction(NamedTuple):
@@ -125,13 +125,19 @@ class _Database:
         assert len(set(category_list)) == 1
         return category_list[0][0]
 
-    def get_uncategorized_names(self) -> List[Transaction]:
+    def get_uncategorized_names(self) -> List[Tuple[str, int]]:
+        """
+        Sorts the distinct names according to how often they appear.
+        """
         result = self.cursor.execute(
-            f"SELECT DISTINCT name FROM {self.table_name} WHERE category=?",
+            "SELECT name, COUNT(*) "
+            f"FROM {self.table_name} "
+            "WHERE category=? "
+            "GROUP BY name "
+            "ORDER BY COUNT(*) DESC",
             ("__UNKNOWN__",),
         )
-        retval = [val[0] for val in result.fetchall()]
-        return retval
+        return result.fetchall()
 
     def set_name_category(self, name: str, category: Optional[str]) -> None:
         if category is None:

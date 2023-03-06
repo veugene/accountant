@@ -128,29 +128,27 @@ class Uncategorized:
         self._history = {}
         self.update()
 
-    def get_names(self) -> List[str]:
-        return self.uncategorized_names
-
     def get_categories(self) -> List[str]:
         category_list = sorted(
             [c for c in self.category_list if c != "__UNKNOWN__"]
         )
         return category_list
 
-    def get_name_to_process(self) -> Tuple[str, Transaction]:
+    def get_name_to_process(self) -> Tuple[str, int, Transaction, int, int]:
         if self._idx >= len(self.uncategorized_names):
             self.reset()
             raise StopIteration
         self._current_name = self.uncategorized_names[self._idx]
-        while self._current_name in self._history:
+        while self._current_name[0] in self._history:
             self._idx += 1
             self._current_name = self.uncategorized_names[self._idx]
 
         # Get one example of a matching transaction.
+        name, count = self._current_name
         with Database(self.db_path) as db:
             result = db.cursor.execute(
                 f"SELECT * FROM {db.table_name} WHERE name=? LIMIT 1",
-                (self._current_name,),
+                (name,),
             ).fetchall()
             tx_example = Transaction(*result[0])
 
@@ -158,17 +156,19 @@ class Uncategorized:
         n_done = len(self._history)
         n_total = len(self.uncategorized_names)
 
-        return self._current_name, tx_example, n_done, n_total
+        return name, count, tx_example, n_done, n_total
 
     def set_category(self, category: str):
+        name, count = self._current_name
         with Database(self.db_path) as db:
-            db.set_name_category(self._current_name, category)
-        self._history[self._current_name] = category
+            db.set_name_category(name, category)
+        self._history[name] = (category, count)
         self._idx += 1
         self.update()
 
     def skip(self):
-        self._history[self._current_name] = "__UNKNOWN__"
+        name, count = self._current_name
+        self._history[name] = ("__UNKNOWN__", count)
         self._idx += 1
 
     def undo(self):
@@ -176,10 +176,10 @@ class Uncategorized:
             return
 
         previous_name = list(self._history.keys())[-1]
-        category = self._history.pop(previous_name)
+        category, count = self._history.pop(previous_name)
         if self._idx > 0:
             self._idx -= 1
-        self._current_name = previous_name
+        self._current_name = (previous_name, count)
         with Database(self.db_path) as db:
-            db.set_name_category(self._current_name, "__UNKNOWN__")
+            db.set_name_category(previous_name, "__UNKNOWN__")
         self.update()
