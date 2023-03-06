@@ -11,7 +11,7 @@ class Plot:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.category = '*'
-        self.interval = 'M'
+        self.interval = 'MS'
         self.update()
 
     def set_category(self, category: str) -> None:
@@ -19,6 +19,11 @@ class Plot:
             return
         self.category = category
         self.update()
+    
+    def set_interval(self, interval: str) -> None:
+        assert interval in ['MS', 'YS']
+        self.interval = interval
+        self.fig_line = self.make_line()
     
     def get_category(self) -> str:
         return self.category
@@ -36,11 +41,10 @@ class Plot:
             self.df = pd.read_sql_query(query, db.connection)
             self.df['date'] = pd.to_datetime(self.df.date, format='%Y-%m-%d')
         self.fig_pie = px.pie(self.df, values='amount', names='category')
-        self.fig_line = self.make_line(self.interval)
+        self.fig_line = self.make_line()
     
-    def make_line(self, interval: str = 'M'):
-        assert interval in ['M', 'Y']
-        self.interval = interval
+    def make_line(self):
+        assert self.interval in ['MS', 'YS']
         
         # Group amounts by category, interpolate index by time interval, and
         # within each interval, sum all the amounts of each category.
@@ -59,10 +63,16 @@ class Plot:
         # Simplify MultiIndex columns (amount, <category>) to just category names.
         df.columns = df.columns.get_level_values(1)
         fig = px.line(df, x=df.index, y=df.columns)
-        if interval == 'M':
-            fig.update_xaxes(tickangle=90, dtick='M1', tickformat="%b %Y")
+        if self.interval == 'MS':
+            fig.update_layout(
+                xaxis={'tickangle': 90, 'dtick': 'M1', 'tickformat': '%b %Y'}
+            )
+        elif self.interval == 'YS':
+            fig.update_layout(
+                xaxis={'tickangle': 90, 'dtick': 'M12', 'tickformat': '%Y'}
+            )
         else:
-            fig.update_xaxes(tickangle=90, dtick='Y1', tickformat="%Y")
+            AssertionError(f"interval={self.interval} not in ['M', 'Y']")
         return fig
 
     def get_df(self, category: Optional[str] = None) -> pd.DataFrame:

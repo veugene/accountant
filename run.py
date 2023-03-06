@@ -46,6 +46,7 @@ app.layout = html.Div(
             id="dummy_button_categorize_output", style={"display": "none"}
         ),
         html.Div(id="dummy_button_plot_output", style={"display": "none"}),
+        html.Div(id="dummy_checklist_output", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -134,7 +135,7 @@ app.layout = html.Div(
         dcc.Graph(
             id="line_plot",
             figure=state_plot.get_fig_line(),
-            style={"float": "left"},
+            style={"float": "right"},
         ),
         html.Div(
             style={
@@ -151,6 +152,7 @@ app.layout = html.Div(
                     ["2020", "2021", "2022"],
                     clearable=True,
                 ),
+                dcc.Checklist(id='checklist_annual', options=['Annual']),
             ],
             style={"float": "left", "margin": "1%"},
         ),
@@ -197,13 +199,14 @@ def upload_csv_callback(contents_list):
 
 @app.callback(
     Output("pie_chart", "figure"),
+    Output("line_plot", "figure"),
     Input("button_plot", "n_clicks"),
 )
 def button_plot_callback(n_clicks):
     # Update figure.
     if n_clicks is not None:
         state_plot.update()
-    return state_plot.get_fig_pie()
+    return state_plot.get_fig_pie(), state_plot.get_fig_line()
 
 
 @app.callback(
@@ -271,6 +274,19 @@ def click_pie_chart_callback(click_data):
         df.to_dict("records"), [{"name": i, "id": i} for i in df.columns]
     )
     return [table]
+
+
+@app.callback(
+    Output("dummy_checklist_output", "children"),
+    Input("checklist_annual", "value"),
+)
+def checklist_annual_callback(value):
+    if value is not None:
+        if len(value):
+            state_plot.set_interval('YS')
+        else:
+            state_plot.set_interval('MS')
+    return None
 
 
 if __name__ == "__main__":
