@@ -145,11 +145,6 @@ class Uncategorized:
 
         # Get one example of a matching transaction.
         with Database(self.db_path) as db:
-            print(
-                "DEBUG",
-                f"SELECT * FROM {db.table_name} "
-                f"WHERE name='{self._current_name}' LIMIT 1",
-            )
             result = db.cursor.execute(
                 f"SELECT * FROM {db.table_name} WHERE name=? LIMIT 1",
                 (self._current_name,),

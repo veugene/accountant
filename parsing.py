@@ -28,9 +28,18 @@ def parse_line(csv_line):
     assert isinstance(csv_line, list)
     if len(csv_line) == 4:
         # CIBC
+        name = csv_line[1]
+        for match_string in [
+            "Internet Banking INTERNET TRANSFER",
+            "Internet Banking INTERNET BILL PAY",
+            "Electronic Funds Transfer PAY",
+            "Point of Sale - Interac RETAIL PURCHASE",
+        ]:
+            if name.startswith(match_string):
+                name = remove_transaction_number(name, match_string)
         return Transaction(
             date=csv_line[0],
-            name=csv_line[1],
+            name=name,
             amount=string_to_float(csv_line[2]) - string_to_float(csv_line[3]),
         )
     if len(csv_line) == 5:
@@ -57,6 +66,17 @@ def parse_line(csv_line):
             amount=string_to_float(csv_line[11]),
         )
     return None
+
+
+def remove_transaction_number(name, match_string):
+    """
+    Some CIBC transactions have a unique number in the name, making categorizing
+    by name impractical. Remove this number.
+    """
+    assert name.startswith(match_string)
+    n_words = len(match_string.split(" "))
+    transaction_number = name.split(" ")[n_words]
+    return name.replace(transaction_number, "__REDACTED_TRANSACTION_NUMBER__")
 
 
 def string_to_float(string):
