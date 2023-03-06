@@ -65,7 +65,6 @@ app.layout = html.Div(
         html.Div(id="dummy_button_plot_output", style={"display": "none"}),
         html.Div(id="dummy_checklist_output", style={"display": "none"}),
         html.Div(id="dummy_picker_output", style={"display": "none"}),
-        html.Div(id="dummy_dropdown_output", style={"display": "none"}),
         html.Div(id="dummy_table_output", style={"display": "none"}),
         html.Div(
             [
@@ -416,15 +415,18 @@ def date_picker_range_callback(start_date, end_date):
 
 
 @app.callback(
-    Output("dummy_dropdown_output", "children"),
+    Output("date_picker_range", "start_date"),
+    Output("date_picker_range", "end_date"),
     Input("year_dropdown", "value"),
 )
 def date_picker_range_callback(value):
     if value is not None:
-        state_plot.set_date_range(f"{value}-01-01", f"{value}-12-31")
+        start_date = f"{value}-01-01"
+        end_date = f"{value}-12-31"
     else:
-        state_plot.set_date_range(None, None)
-    return None
+        start_date = end_date = None
+    state_plot.set_date_range(start_date, end_date)
+    return start_date, end_date
 
 
 @app.callback(
