@@ -31,7 +31,7 @@ def parse_line(csv_line):
         return Transaction(
             date=csv_line[0],
             name=csv_line[1],
-            amount=string_to_float(csv_line[2]) + string_to_float(csv_line[3]),
+            amount=string_to_float(csv_line[2]) - string_to_float(csv_line[3]),
         )
     if len(csv_line) == 5:
         if csv_line[4] == "SPREADSHEET":
@@ -47,7 +47,7 @@ def parse_line(csv_line):
                 date=csv_line[0],
                 name=csv_line[1],
                 amount=string_to_float(csv_line[2])
-                + string_to_float(csv_line[3]),
+                - string_to_float(csv_line[3]),
             )
     if len(csv_line) == 12:
         # Rogers Mastercard
