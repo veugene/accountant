@@ -8,7 +8,7 @@ class Transaction(NamedTuple):
     date: str
     name: str
     amount: float
-    category: Optional[str] = None
+    category: Optional[str] = '__UNKNOWN__'
 
 
 class Database:
@@ -128,8 +128,8 @@ class _Database:
     
     def get_uncategorized_names(self) -> List[Transaction]:
         result = self.cursor.execute(
-            f'SELECT DISTINCT name FROM {self.table_name} '
-            'WHERE category IS NULL'
+            f"SELECT DISTINCT name FROM {self.table_name} "
+            "WHERE category = '__UNKNOWN__'"
         )
         retval = [val[0] for val in result.fetchall()]
         return retval

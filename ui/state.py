@@ -38,10 +38,8 @@ class Plot:
 
     def update(self) -> None:
         with Database(self.db_path) as db:
-            if self.category == 'NULL':
-                query = f"SELECT * FROM {db.table_name} WHERE category IS NULL"
-            elif self.category == '*':
-                query = f"SELECT * FROM {db.table_name} WHERE NULL IS NULL"
+            if self.category == '*':
+                query = f"SELECT * FROM {db.table_name} WHERE category IS NOT NULL"
             else:
                 query = (
                     f"SELECT * FROM {db.table_name} WHERE category={self.category}"
@@ -121,7 +119,8 @@ class Uncategorized:
         return self.uncategorized_names
 
     def get_categories(self) -> List[str]:
-        return self.category_list
+        category_list = [c for c in self.category_list if c != '__UNKNOWN__']
+        return category_list
     
     def __next__(self):
         self._current_name = next(self._iter)
