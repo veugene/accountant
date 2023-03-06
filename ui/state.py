@@ -132,7 +132,9 @@ class Uncategorized:
         return self.uncategorized_names
 
     def get_categories(self) -> List[str]:
-        category_list = [c for c in self.category_list if c != "__UNKNOWN__"]
+        category_list = sorted(
+            [c for c in self.category_list if c != "__UNKNOWN__"]
+        )
         return category_list
 
     def get_name_to_process(self) -> Tuple[str, Transaction]:
