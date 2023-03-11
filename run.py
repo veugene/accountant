@@ -259,6 +259,7 @@ def upload_csv_callback(contents_list, year_options):
     Input("year_dropdown", "value"),
     Input("checklist_annual", "value"),
     Input("transaction_table_category", "children"),
+    Input("upload_csv", "contents"),
     prevent_initial_call=True,
 )
 def refresh_all_callback(categorize_modal_open, *args, **kwargs):
