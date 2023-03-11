@@ -23,6 +23,7 @@ DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 state_table = Table(DB_PATH)
 state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
+state_table.set_category_options(state_uncategorized.get_categories())
 
 
 # Modal dialogue uses state.
@@ -228,6 +229,7 @@ app.layout = html.Div(
     Output("year_dropdown", "options"),
     Input("upload_csv", "contents"),
     State("year_dropdown", "options"),
+    prevent_initial_call=True,
 )
 def upload_csv_callback(contents_list, year_options):
     if contents_list is None:
@@ -266,6 +268,7 @@ def upload_csv_callback(contents_list, year_options):
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
     Input("button_plot", "n_clicks"),
+    prevent_initial_call=True,
 )
 def button_plot_callback(n_clicks):
     # Update figure.
@@ -287,6 +290,7 @@ def button_plot_callback(n_clicks):
     State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
     Input("modal_categorize_text", "value"),
+    prevent_initial_call=True,
 )
 def button_categorize_callback(
     n_clicks_open,
@@ -352,10 +356,10 @@ def button_categorize_callback(
     Input("date_picker_range", "start_date"),
     Input("date_picker_range", "end_date"),
     Input("year_dropdown", "value"),
+    prevent_initial_call=True,
 )
 def click_pie_chart_callback(click_data, start_date, end_date, year):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
-    print("DEBUG TRIGGER", trigger_id)
     if trigger_id == "pie_chart":
         if click_data is None:
             state_table.reset()
@@ -372,6 +376,7 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
 @app.callback(
     Output("dummy_checklist_output", "children"),
     Input("checklist_annual", "value"),
+    prevent_initial_call=True,
 )
 def checklist_annual_callback(value):
     if value is not None:
@@ -386,6 +391,7 @@ def checklist_annual_callback(value):
     Output("dummy_picker_output", "children"),
     Input("date_picker_range", "start_date"),
     Input("date_picker_range", "end_date"),
+    prevent_initial_call=True,
 )
 def date_picker_range_callback(start_date, end_date):
     state_plot.set_date_range(start_date, end_date)
@@ -396,6 +402,7 @@ def date_picker_range_callback(start_date, end_date):
     Output("date_picker_range", "start_date"),
     Output("date_picker_range", "end_date"),
     Input("year_dropdown", "value"),
+    prevent_initial_call=True,
 )
 def date_picker_range_callback(value):
     state_plot.set_year(value)
@@ -405,6 +412,7 @@ def date_picker_range_callback(value):
 @app.callback(
     Output("dummy_table_output", "children"),
     Input("editable_transaction_table", "data"),
+    prevent_initial_call=True,
 )
 def transaction_table_category_change_callback(data):
     if data is None:
