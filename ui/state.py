@@ -283,7 +283,7 @@ class Table:
         self.table = table
 
     def get_table(self):
-        return self.table
+        return [html.B(f"{self.category}"), self.table]
 
     def diff(self, data):
         """

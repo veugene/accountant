@@ -212,6 +212,7 @@ app.layout = html.Div(
         html.Div(
             id="category_contents",
             children=[
+                html.B("No category selected", id="transaction_table_category"),
                 dash_table.DataTable(
                     id="editable_transaction_table",
                     columns=[{"name": "empty", "id": "empty"}],
@@ -365,7 +366,7 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
         state_table.set_date_range(start_date, end_date)
     if trigger_id == "year_dropdown":
         state_table.set_year(year)
-    return [state_table.get_table()]
+    return state_table.get_table()
 
 
 @app.callback(
