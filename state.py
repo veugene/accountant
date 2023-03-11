@@ -197,11 +197,11 @@ class Uncategorized:
 class Table:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.data = None
         self.category = "*"
         self.start_date = None
         self.end_date = None
         self.category_options = []
+        self.records = None
         self.table = None
 
     def reset(self):
@@ -231,10 +231,6 @@ class Table:
         self.set_date_range(start_date, end_date)
 
     def update(self):
-        # Updating table, delete 'data' cache that is used to detect if the
-        # existing table was modified.
-        self.data = None
-
         # Query
         if self.category == "*":
             category_query = "category IS NOT NULL"
@@ -281,6 +277,7 @@ class Table:
                 }
             ],  # github.com/plotly/dash-table/issues/221
         )
+        self.records = df.to_dict("records")
         self.table = table
 
     def get_table(self):
@@ -292,11 +289,8 @@ class Table:
         next call, compares the data lists together and finds the first difference.
         Only the category is expected to change.
         """
-        if self.data is None:
-            self.data = data
-            return None
-
-        assert len(data) == len(self.data)
-        for new, old in zip(data, self.data):
+        assert self.records is not None
+        assert len(data) == len(self.records)
+        for new, old in zip(data, self.records):
             if new["category"] != old["category"]:
                 return new
