@@ -5,6 +5,8 @@ from pathlib import Path
 from shutil import copy
 from typing import List, NamedTuple, Optional, Tuple, Union
 
+from natsort import natsorted
+
 
 class Transaction(NamedTuple):
     date: str
@@ -179,7 +181,7 @@ class _Database:
             self.database_file_path.parent.glob(f"{name_root}*")
         )
         last_backup_num = 0
-        for fn in sorted(backup_file_list)[::-1]:
+        for fn in natsorted(backup_file_list)[::-1]:
             suffix = str(fn.name).replace(name_root, "")
             try:
                 last_backup_num = int(suffix)
