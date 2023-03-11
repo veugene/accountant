@@ -41,7 +41,6 @@ def get_next_modal_body():
         message = "No uncategorized transactions"
         options = []
     else:
-        print(similar_names)
         message = [
             html.P(
                 [
@@ -59,7 +58,7 @@ def get_next_modal_body():
             ),
         ]
         options = state_uncategorized.get_categories()
-    return message, options
+    return message, similar_names, options
 
 
 # The app accesses and updates the state.
@@ -111,15 +110,37 @@ app.layout = html.Div(
                             id="modal_categorize_body",
                             children=[
                                 html.Div("", id="modal_categorize_message"),
-                                dcc.RadioItems(
-                                    [],
-                                    labelStyle={"display": "block"},
-                                    id="modal_categorize_radio_items",
+                                html.Div(
+                                    [
+                                        dcc.RadioItems(
+                                            [],
+                                            labelStyle={"display": "block"},
+                                            id="modal_categorize_radio_items",
+                                        ),
+                                        dcc.Input(
+                                            type="text",
+                                            debounce=True,
+                                            id="modal_categorize_text",
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "48%",
+                                        "margin": "1%",
+                                        "float": "left",
+                                    },
                                 ),
-                                dcc.Input(
-                                    type="text",
-                                    debounce=True,
-                                    id="modal_categorize_text",
+                                html.Div(
+                                    [
+                                        dcc.Checklist(
+                                            id="checklist_similar_names",
+                                            options=[],
+                                        )
+                                    ],
+                                    style={
+                                        "width": "48%",
+                                        "margin": "1%",
+                                        "float": "right",
+                                    },
                                 ),
                             ],
                         ),
@@ -286,6 +307,7 @@ def refresh_all_callback(categorize_modal_open, *args, **kwargs):
 @app.callback(
     Output("modal_categorize", "is_open"),
     Output("modal_categorize_message", "children"),
+    Output("checklist_similar_names", "options"),
     Output("modal_categorize_radio_items", "options"),
     Output("modal_categorize_radio_items", "value"),
     Output("modal_categorize_text", "value"),
@@ -351,9 +373,9 @@ def button_categorize_callback(
         state_table.set_category_options(state_uncategorized.get_categories())
 
     # Update the message and radio items options.
-    message, options = get_next_modal_body()
+    message, similar_names, options = get_next_modal_body()
 
-    return set_is_open, message, options, None, ""
+    return set_is_open, message, similar_names, options, None, ""
 
 
 @app.callback(

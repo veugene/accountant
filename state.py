@@ -1,4 +1,5 @@
 import re
+from multiprocessing import Pool, cpu_count
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -9,6 +10,10 @@ from fuzzywuzzy import fuzz
 from plotly.graph_objects import Figure
 
 from database import Database, Transaction
+
+
+def compute_similarity(df):
+    return df.apply(lambda col: [fuzz.ratio(col.name, x) for x in col.index])
 
 
 class Plot:
@@ -152,7 +157,11 @@ class Uncategorized:
             columns=["key", "name"],
         )
         ct = pd.crosstab(df["key"], df["key"])
-        ct = ct.apply(lambda col: [fuzz.ratio(col.name, x) for x in col.index])
+        ct_split = np.array_split(ct, cpu_count())
+        with Pool(cpu_count()) as pool:
+            print("Computing name similarities ...")
+            ct = pd.concat(pool.map(compute_similarity, ct_split))
+            print("DONE")
         self.name_similarity = ct
         self.name_mapping = name_mapping
 
@@ -189,6 +198,7 @@ class Uncategorized:
 
         # Identify similar names.
         similar_names = self.get_similar_names(name)
+        print(similar_names)
 
         return name, similar_names, count, tx_example, n_done, n_total
 
