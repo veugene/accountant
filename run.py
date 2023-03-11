@@ -46,11 +46,13 @@ def get_next_modal_body():
                     html.I(name),
                     html.Br(),
                     html.Br(),
-                    f"Name {n_done} / {n_total}; {count} occurrences. "
-                    "Example transaction: "
+                    "Ex: "
                     f"[{tx_example.date}, "
                     f"{tx_example.name}, "
                     f"{tx_example.amount}]",
+                    html.Br(),
+                    html.Br(),
+                    f"Name {n_done} / {n_total}; {count} occurrences.",
                 ]
             ),
         ]
