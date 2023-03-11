@@ -209,17 +209,25 @@ class Uncategorized:
         similar_names = [self.name_mapping[key] for key in similar_keys]
         return similar_names[1:]  # Skip self match
 
-    def set_category(self, category: str):
+    def set_category(
+        self,
+        category: str,
+        similar_names: Optional[List[str]] = None,
+    ):
+        if similar_names is None:
+            similar_names = []
         name, count = self._current_name
         with Database(self.db_path) as db:
             db.set_name_category(name, category)
-        self._history[name] = (category, count)
+            for s_name in similar_names:
+                db.set_name_category(s_name, category)
+        self._history[name] = (category, count, similar_names)
         self._idx += 1
         self.update()
 
     def skip(self):
         name, count = self._current_name
-        self._history[name] = ("__UNKNOWN__", count)
+        self._history[name] = ("__UNKNOWN__", count, [])
         self._idx += 1
 
     def undo(self):
@@ -227,12 +235,14 @@ class Uncategorized:
             return
 
         previous_name = list(self._history.keys())[-1]
-        category, count = self._history.pop(previous_name)
+        category, count, similar_names = self._history.pop(previous_name)
         if self._idx > 0:
             self._idx -= 1
         self._current_name = (previous_name, count)
         with Database(self.db_path) as db:
             db.set_name_category(previous_name, "__UNKNOWN__")
+            for s_name in similar_names:
+                db.set_name_category(s_name, "__UNKNOWN__")
         self.update()
 
 

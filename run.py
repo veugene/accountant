@@ -124,20 +124,22 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "48%",
+                                        "width": "28%",
                                         "margin": "1%",
                                         "float": "left",
                                     },
                                 ),
                                 html.Div(
                                     [
+                                        html.B("Select similar names:"),
                                         dcc.Checklist(
                                             id="checklist_similar_names",
+                                            labelStyle={"display": "block"},
                                             options=[],
-                                        )
+                                        ),
                                     ],
                                     style={
-                                        "width": "48%",
+                                        "width": "68%",
                                         "margin": "1%",
                                         "float": "right",
                                     },
@@ -315,19 +317,21 @@ def refresh_all_callback(categorize_modal_open, *args, **kwargs):
     Input("button_ignore_modal_categorize", "n_clicks"),
     Input("button_undo_modal_categorize", "n_clicks"),
     Input("button_skip_modal_categorize", "n_clicks"),
-    State("modal_categorize", "is_open"),
     Input("modal_categorize_radio_items", "value"),
     Input("modal_categorize_text", "value"),
+    State("modal_categorize", "is_open"),
+    State("checklist_similar_names", "value"),
     prevent_initial_call=True,
 )
-def button_categorize_callback(
+def categorize_callback(
     n_clicks_open,
     n_clicks_ignore,
     n_clicks_undo,
     n_clicks_skip,
-    is_open,
     category,
     new_category,
+    is_open,
+    selected_similar_names,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
@@ -352,13 +356,15 @@ def button_categorize_callback(
 
     # If a radio item is selected within the modal dialog.
     elif trigger_id == "modal_categorize_radio_items":
-        state_uncategorized.set_category(category)
+        state_uncategorized.set_category(category, selected_similar_names)
 
     # Entered a new category.
     elif trigger_id == "modal_categorize_text":
         if new_category != "":
             # Avoid empty string category. Do nothing.
-            state_uncategorized.set_category(new_category)
+            state_uncategorized.set_category(
+                new_category, selected_similar_names
+            )
 
     # Initial null trigger on app start.
     elif len(trigger_id) == 0:
