@@ -1,9 +1,11 @@
+import re
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
 from dash import Dash, dash_table, dcc, html
+from fuzzywuzzy import fuzz
 from plotly.graph_objects import Figure
 
 from database import Database, Transaction
@@ -135,6 +137,26 @@ class Uncategorized:
     def reset(self):
         self._current_name = None
         self._history = {}
+
+        # Make a name similarity matrix.
+        with Database(self.db_path) as db:
+            all_names = db.cursor.execute(
+                f"SELECT name FROM {db.table_name}"
+            ).fetchall()
+        name_mapping = {
+            re.sub(r"[\W\d]+", "", name[0].lower()): name[0]
+            for name in all_names
+        }
+        df = pd.DataFrame(
+            zip(name_mapping.keys(), name_mapping.values()),
+            columns=["key", "name"],
+        )
+        ct = pd.crosstab(df["key"], df["key"])
+        ct = ct.apply(lambda col: [fuzz.ratio(col.name, x) for x in col.index])
+        self.name_similarity = ct
+        self.name_mapping = name_mapping
+
+        # Update
         self.update()
 
     def get_categories(self) -> List[str]:
@@ -165,7 +187,17 @@ class Uncategorized:
         n_done = len(self._history)
         n_total = len(self.uncategorized_names)
 
-        return name, count, tx_example, n_done, n_total
+        # Identify similar names.
+        similar_names = self.get_similar_names(name)
+
+        return name, similar_names, count, tx_example, n_done, n_total
+
+    def get_similar_names(self, name: str):
+        key = re.sub(r"[\W\d]+", "", name.lower())
+        df = self.name_similarity[key].sort_values(ascending=False)
+        similar_keys = list(df[df > 75].index)
+        similar_names = [self.name_mapping[key] for key in similar_keys]
+        return similar_names[1:]  # Skip self match
 
     def set_category(self, category: str):
         name, count = self._current_name

@@ -31,6 +31,7 @@ def get_next_modal_body():
     try:
         (
             name,
+            similar_names,
             count,
             tx_example,
             n_done,
@@ -40,6 +41,7 @@ def get_next_modal_body():
         message = "No uncategorized transactions"
         options = []
     else:
+        print(similar_names)
         message = [
             html.P(
                 [
