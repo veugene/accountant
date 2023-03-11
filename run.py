@@ -256,13 +256,14 @@ def upload_csv_callback(contents_list, year_options):
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
     Output("transaction_table_container", "children"),
-    Input("modal_categorize", "is_open"),
-    Input("date_picker_range", "start_date"),
-    Input("date_picker_range", "end_date"),
-    Input("year_dropdown", "value"),
-    Input("checklist_annual", "value"),
-    Input("transaction_table_category", "children"),
-    Input("upload_csv", "contents"),
+    Input("modal_categorize", "is_open"),  # Wait for callback
+    Input("date_picker_range", "start_date"),  # Wait for callback
+    Input("date_picker_range", "end_date"),  # Wait for callback
+    Input("year_dropdown", "value"),  # Wait for callback
+    Input("transaction_table_category", "children"),  # Wait for callback
+    Input("year_dropdown", "options"),  # Wait for upload csv callback
+    Input("dummy_table_output", "children"),  # Wait for callback
+    Input("dummy_checklist_output", "children"),  # Wait for callback
     prevent_initial_call=True,
 )
 def refresh_all_callback(categorize_modal_open, *args, **kwargs):
@@ -423,6 +424,7 @@ def transaction_table_category_change_callback(data):
                 name=diff["name"],
                 category=diff["category"],
             )
+        state_table.update()
     return
 
 
