@@ -9,12 +9,12 @@ import io
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import Dash, dash_table, dcc, html
+from dash import Dash, dash_table, dcc, html, no_update
 from dash.dependencies import Input, Output, State
 
 from database import Database, Transaction
 from parsing import parse_csv
-from ui.state import Plot, Table, Uncategorized
+from state import Plot, Table, Uncategorized
 
 # Database path is hardcoded.
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
@@ -69,7 +69,7 @@ app.layout = html.Div(
                         ["Import CSV files (click or drag and drop)"]
                     ),
                     style={
-                        "width": "31%",
+                        "width": "48%",
                         "height": "60px",
                         "lineHeight": "60px",
                         "borderWidth": "1px",
@@ -86,22 +86,7 @@ app.layout = html.Div(
                     "Categorize unknown",
                     id="button_categorize",
                     style={
-                        "width": "31%",
-                        "height": "60px",
-                        "lineHeight": "60px",
-                        "borderWidth": "2px",
-                        "borderStyle": "solid",
-                        "borderRadius": "5px",
-                        "textAlign": "center",
-                        "margin": "1%",
-                        "float": "left",
-                    },
-                ),
-                html.Button(
-                    "Plot",
-                    id="button_plot",
-                    style={
-                        "width": "31%",
+                        "width": "48%",
                         "height": "60px",
                         "lineHeight": "60px",
                         "borderWidth": "2px",
@@ -206,13 +191,18 @@ app.layout = html.Div(
             style={"float": "left", "margin": "1%"},
         ),
         html.Div(
-            id="category_contents",
-            children=[
-                html.B("No category selected", id="transaction_table_category"),
-                dash_table.DataTable(
-                    id="editable_transaction_table",
-                    columns=[{"name": "empty", "id": "empty"}],
-                )
+            [
+                html.Div(
+                    html.B("No category selected"),
+                    id="transaction_table_category",
+                ),
+                html.Div(
+                    dash_table.DataTable(
+                        id="editable_transaction_table",
+                        columns=[{"name": "empty", "id": "empty"}],
+                    ),
+                    id="transaction_table_container",
+                ),
             ],
             style={"width": "31%", "float": "left", "margin": "1%"},
         ),
@@ -262,14 +252,26 @@ def upload_csv_callback(contents_list, year_options):
 @app.callback(
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
-    Input("button_plot", "n_clicks"),
+    Output("transaction_table_container", "children"),
+    Input("modal_categorize", "is_open"),
+    Input("date_picker_range", "start_date"),
+    Input("date_picker_range", "end_date"),
+    Input("year_dropdown", "value"),
+    Input("checklist_annual", "value"),
+    Input("transaction_table_category", "children"),
     prevent_initial_call=True,
 )
-def button_plot_callback(n_clicks):
-    # Update figure.
-    if n_clicks is not None:
-        state_plot.update()
-    return state_plot.get_fig_pie(), state_plot.get_fig_line()
+def refresh_all_callback(categorize_modal_open, *args, **kwargs):
+    trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id == "modal_categorize" and categorize_modal_open == True:
+        # Update only when the modal is closed, not when it is opened.
+        return no_update, no_update, no_update
+    state_plot.update()  # Update figure.
+    return (
+        state_plot.get_fig_pie(),
+        state_plot.get_fig_line(),
+        [state_table.get_table()],
+    )
 
 
 @app.callback(
@@ -346,7 +348,7 @@ def button_categorize_callback(
 
 
 @app.callback(
-    Output("category_contents", "children"),
+    Output("transaction_table_category", "children"),
     Input(component_id="pie_chart", component_property="clickData"),
     Input("date_picker_range", "start_date"),
     Input("date_picker_range", "end_date"),
@@ -365,7 +367,7 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
         state_table.set_date_range(start_date, end_date)
     if trigger_id == "year_dropdown":
         state_table.set_year(year)
-    return state_table.get_table()
+    return html.B(state_table.category)
 
 
 @app.callback(

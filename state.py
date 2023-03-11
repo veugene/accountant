@@ -202,6 +202,7 @@ class Table:
         self.start_date = None
         self.end_date = None
         self.category_options = []
+        self.table = None
 
     def reset(self):
         self.category = "*"
@@ -283,7 +284,7 @@ class Table:
         self.table = table
 
     def get_table(self):
-        return [html.B(f"{self.category}"), self.table]
+        return self.table
 
     def diff(self, data):
         """
