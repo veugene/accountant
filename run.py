@@ -59,12 +59,7 @@ def get_next_modal_body():
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div(
     children=[
-        html.Div(
-            id="dummy_button_categorize_output", style={"display": "none"}
-        ),
-        html.Div(id="dummy_button_plot_output", style={"display": "none"}),
         html.Div(id="dummy_checklist_output", style={"display": "none"}),
-        html.Div(id="dummy_picker_output", style={"display": "none"}),
         html.Div(id="dummy_table_output", style={"display": "none"}),
         html.Div(
             [
@@ -388,25 +383,23 @@ def checklist_annual_callback(value):
 
 
 @app.callback(
-    Output("dummy_picker_output", "children"),
-    Input("date_picker_range", "start_date"),
-    Input("date_picker_range", "end_date"),
-    prevent_initial_call=True,
-)
-def date_picker_range_callback(start_date, end_date):
-    state_plot.set_date_range(start_date, end_date)
-    return None
-
-
-@app.callback(
     Output("date_picker_range", "start_date"),
     Output("date_picker_range", "end_date"),
+    Output("year_dropdown", "value"),
+    Input("date_picker_range", "start_date"),
+    Input("date_picker_range", "end_date"),
     Input("year_dropdown", "value"),
     prevent_initial_call=True,
 )
-def date_picker_range_callback(value):
-    state_plot.set_year(value)
-    return state_plot.start_date, state_plot.end_date
+def date_picker_range_callback(start_date, end_date, year):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id == "date_picker_range":
+        state_plot.set_date_range(start_date, end_date)
+        year = None
+    if trigger_id == "year_dropdown":
+        state_plot.set_year(year)
+    return state_plot.start_date, state_plot.end_date, year
 
 
 @app.callback(
