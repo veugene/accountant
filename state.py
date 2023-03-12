@@ -345,7 +345,7 @@ class Table:
 
         # Create a table where the 'category' column is editable and has a
         # dropdown menu to select the category.
-        category_options = [c for c in category_list]
+        category_options = sorted(category_list)
         dropdown_options = [{"label": i, "value": i} for i in category_options]
         columns = []
         for c in df.columns:

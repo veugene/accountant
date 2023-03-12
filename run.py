@@ -698,6 +698,7 @@ def convert_button_callback(n_clicks, category, selected_rows, rows):
     Output("modal_query_container", "children"),
     Output("modal_query_target_dropdown", "options"),
     Output("modal_query_source_dropdown", "options"),
+    Output("select_all_checklist", "value"),
     Input("dummy3", "children"),
     Input("dummy4", "children"),
     Input("dummy5", "children"),
@@ -707,7 +708,12 @@ def refresh_query_table(*args, **kwargs):
     state_table_modal.update()
     state_uncategorized.update()
     categories = state_uncategorized.get_categories()
-    return [state_table_modal.get_table()], categories, ["*"] + categories
+    return (
+        [state_table_modal.get_table()],
+        categories,
+        ["*"] + categories,
+        [],
+    )
 
 
 if __name__ == "__main__":
