@@ -230,7 +230,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "48%",
+                                        "width": "32%",
                                         "margin": "1%",
                                         "float": "left",
                                     },
@@ -261,6 +261,22 @@ app.layout = html.Div(
                                 ),
                                 html.Div(
                                     [
+                                        html.B("Create category"),
+                                        dcc.Input(
+                                            type="text",
+                                            debounce=False,
+                                            id="input_create_category",
+                                            style={"width": "100%"},
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "16%",
+                                        "margin": "1%",
+                                        "float": "right",
+                                    },
+                                ),
+                                html.Div(
+                                    [
                                         html.B("Target category"),
                                         dcc.Dropdown(
                                             id="modal_query_target_dropdown",
@@ -272,7 +288,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "18%",
+                                        "width": "16%",
                                         "margin": "1%",
                                         "float": "right",
                                     },
@@ -292,7 +308,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "18%",
+                                        "width": "16%",
                                         "margin": "1%",
                                         "float": "right",
                                     },
@@ -678,13 +694,20 @@ def query_table_change_callback(data):
     Output("dummy5", "children"),
     Input("button_convert", "n_clicks"),
     State("modal_query_target_dropdown", "value"),
+    State("input_create_category", "value"),
     State("query_table", "selected_rows"),
     State("query_table", "data"),
     prevent_initial_call=True,
 )
-def convert_button_callback(n_clicks, category, selected_rows, rows):
+def convert_button_callback(
+    n_clicks, category_dropdown, category_create, selected_rows, rows
+):
     if len(selected_rows) == 0:
         return
+    if category_create is not None and category_create != "":
+        category = category_create
+    else:
+        category = category_dropdown
     for idx in selected_rows:
         with Database(DB_PATH) as db:
             db.set_name_category(
@@ -692,6 +715,21 @@ def convert_button_callback(n_clicks, category, selected_rows, rows):
                 category=category,
             )
     return
+
+
+@app.callback(
+    Output("modal_query_target_dropdown", "value"),
+    Output("input_create_category", "value"),
+    Input("modal_query_target_dropdown", "value"),
+    Input("input_create_category", "value"),
+    prevent_initial_call=True,
+)
+def clear_dropdown_or_input_field(dropdown_value, input_value):
+    trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id == "modal_query_target_dropdown":
+        return no_update, ""
+    if trigger_id == "input_create_category":
+        return None, no_update
 
 
 @app.callback(
