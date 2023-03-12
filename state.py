@@ -263,9 +263,9 @@ class Table:
         self.category = "*"
         self.start_date = None
         self.end_date = None
-        self.category_options = []
         self.records = None
         self.table = None
+        self.reset()
 
     def reset(self):
         self.category = "*"
@@ -276,9 +276,6 @@ class Table:
             return
         self.category = category
         self.update()
-
-    def set_category_options(self, category_options: List[str]):
-        self.category_options = category_options
 
     def set_date_range(self, start_date: str, end_date: str):
         self.start_date = start_date
@@ -312,9 +309,8 @@ class Table:
 
         # Create a table where the 'category' column is editable and has a
         # dropdown menu to select the category.
-        dropdown_options = [
-            {"label": i, "value": i} for i in self.category_options
-        ]
+        category_options = [c for c in category_list if c != "__UNKNOWN__"]
+        dropdown_options = [{"label": i, "value": i} for i in category_options]
         columns = []
         for c in df.columns:
             if c == "category":

@@ -19,9 +19,9 @@ DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
 state_table = Table(DB_PATH)
+state_table_modal = Table(DB_PATH, group_by_name=True)
 state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
-state_table.set_category_options(state_uncategorized.get_categories())
 
 
 # Modal dialogue uses state.
@@ -452,10 +452,6 @@ def categorize_callback(
     else:
         raise Exception(f"Unexpected callback trigger: {trigger_id}")
 
-    # When closing this modal, update category list for table.
-    if set_is_open is False:
-        state_table.set_category_options(state_uncategorized.get_categories())
-
     # Update the message and radio items options.
     message, similar_names, options = get_next_modal_body()
 
@@ -495,11 +491,8 @@ def query_callback(
 def click_pie_chart_callback(click_data, start_date, end_date, year):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
     if trigger_id == "pie_chart":
-        if click_data is None:
-            state_table.reset()
-        else:
-            category = click_data["points"][0]["label"]
-            state_table.set_category(category)
+        category = click_data["points"][0]["label"]
+        state_table.set_category(category)
     if trigger_id == "date_picker_range":
         state_table.set_date_range(start_date, end_date)
     if trigger_id == "year_dropdown":
