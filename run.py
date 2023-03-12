@@ -67,12 +67,13 @@ def get_next_modal_body():
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div(
     children=[
-        html.Div(id="dummy1", style={"display": "none"}),
-        html.Div(id="dummy2", style={"display": "none"}),
-        html.Div(id="dummy3", style={"display": "none"}),
-        html.Div(id="dummy4", style={"display": "none"}),
-        html.Div(id="dummy5", style={"display": "none"}),
-        html.Div(id="dummy6", style={"display": "none"}),
+        html.Div(id="hidden_refresh1", style={"display": "none"}),
+        html.Div(id="hidden_refresh2", style={"display": "none"}),
+        html.Div(id="hidden_refresh3", style={"display": "none"}),
+        html.Div(id="hidden_refresh4", style={"display": "none"}),
+        html.Div(id="hidden_refresh5", style={"display": "none"}),
+        html.Div(id="hidden_refresh6", style={"display": "none"}),
+        html.Div(id="hidden_refresh7", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -403,6 +404,18 @@ app.layout = html.Div(
                     ],
                     style={"float": "left", "width": "10%", "margin": "1%"},
                 ),
+                html.Div(
+                    [
+                        html.B("Extrapolate final year"),
+                        html.Br(),
+                        dcc.Checklist(
+                            id="checklist_extrapolate_year",
+                            options=["Extrapolate"],
+                            style={"float": "left"},
+                        ),
+                    ],
+                    style={"float": "left", "width": "10%", "margin": "1%"},
+                ),
             ],
             style={"float": "left", "width": "100%", "margin": "1%"},
         ),
@@ -466,7 +479,7 @@ app.layout = html.Div(
 
 @app.callback(
     Output("year_dropdown", "options"),
-    Output("dummy6", "children"),
+    Output("hidden_refresh6", "children"),
     Input("upload_csv", "contents"),
     prevent_initial_call=True,
 )
@@ -508,18 +521,25 @@ def upload_csv_callback(contents_list):
     Input("modal_categorize", "is_open"),  # Wait for callback
     Input("modal_query", "is_open"),  # Wait for callback
     Input("modal_select_categories", "is_open"),  # Wait for callback
+    State("modal_checklist_category_selection", "value"),
     Input("date_picker_range", "start_date"),  # Wait for callback
     Input("date_picker_range", "end_date"),  # Wait for callback
     Input("year_dropdown", "value"),  # Wait for callback
     Input("transaction_table_category", "children"),  # Wait for callback
     Input("year_dropdown", "options"),  # Wait for upload csv callback
-    Input("dummy2", "children"),  # Wait for callback
-    Input("dummy1", "children"),  # Wait for callback
-    Input("dummy6", "children"),  # Wait for callback
+    Input("hidden_refresh2", "children"),  # Wait for callback
+    Input("hidden_refresh1", "children"),  # Wait for callback
+    Input("hidden_refresh6", "children"),  # Wait for callback
+    Input("hidden_refresh7", "children"),  # Wait for callback
     prevent_initial_call=True,
 )
 def refresh_all_callback(
-    categorize_modal_open, query_modal_open, select_modal_open, *args, **kwargs
+    categorize_modal_open,
+    query_modal_open,
+    select_modal_open,
+    category_selection,
+    *args,
+    **kwargs,
 ):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
 
@@ -541,6 +561,9 @@ def refresh_all_callback(
     state_table_modal.update()
     state_plot.update()
     state_uncategorized.update()
+
+    # Update category selection.
+    state_plot.set_category_list(category_selection)
 
     return (
         state_plot.get_fig_pie(),
@@ -667,7 +690,7 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
 
 
 @app.callback(
-    Output("dummy1", "children"),
+    Output("hidden_refresh1", "children"),
     Input("radio_interval", "value"),
     prevent_initial_call=True,
 )
@@ -699,7 +722,7 @@ def date_picker_range_callback(start_date, end_date, year):
 
 
 @app.callback(
-    Output("dummy2", "children"),
+    Output("hidden_refresh2", "children"),
     Input("transaction_table", "data"),
     prevent_initial_call=True,
 )
@@ -718,7 +741,7 @@ def transaction_table_change_callback(data):
 
 
 @app.callback(
-    Output("dummy3", "children"),
+    Output("hidden_refresh3", "children"),
     Input("modal_query_text", "value"),
     Input("modal_query_source_dropdown", "value"),
     prevent_initial_call=True,
@@ -748,7 +771,7 @@ def select_all_callback(select_all, table_data):
 
 
 @app.callback(
-    Output("dummy4", "children"),
+    Output("hidden_refresh4", "children"),
     Input("query_table", "data"),
     prevent_initial_call=True,
 )
@@ -767,7 +790,7 @@ def query_table_change_callback(data):
 
 
 @app.callback(
-    Output("dummy5", "children"),
+    Output("hidden_refresh5", "children"),
     Input("button_convert", "n_clicks"),
     State("modal_query_target_dropdown", "value"),
     State("input_create_category", "value"),
@@ -813,9 +836,9 @@ def clear_dropdown_or_input_field(dropdown_value, input_value):
     Output("modal_query_target_dropdown", "options"),
     Output("modal_query_source_dropdown", "options"),
     Output("select_all_checklist", "value"),
-    Input("dummy3", "children"),
-    Input("dummy4", "children"),
-    Input("dummy5", "children"),
+    Input("hidden_refresh3", "children"),
+    Input("hidden_refresh4", "children"),
+    Input("hidden_refresh5", "children"),
     prevent_initial_call=True,
 )
 def refresh_query_table(*args, **kwargs):
@@ -855,6 +878,17 @@ def select_all_callback(select_all, options):
     if select_all:
         return options
     return []
+
+
+@app.callback(
+    Output("hidden_refresh7", "children"),
+    Input("checklist_extrapolate_year", "value"),
+)
+def extrapolate_year_callback(extrapolate_value):
+    if extrapolate_value == ["Extrapolate"]:
+        state_plot.set_extrapolate(True)
+    else:
+        state_plot.set_extrapolate(False)
 
 
 if __name__ == "__main__":

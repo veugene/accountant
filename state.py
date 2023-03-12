@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -40,16 +41,22 @@ class Basic:
 class Plot:
     def __init__(self, db_path: str):
         self.db_path = db_path
-        self.category = "*"
+        self.category_list = None
         self.interval = "YS"
         self.start_date = None
         self.end_date = None
+        self.extrapolate = False
         self.update()
 
-    def set_category(self, category: str) -> None:
-        if category == self.category:
+    def set_extrapolate(self, extrapolate: bool):
+        if self.extrapolate != extrapolate:
+            self.extrapolate = extrapolate
+            self.update()
+
+    def set_category_list(self, category_list: List[str]) -> None:
+        if self.category_list == category_list:
             return
-        self.category = category
+        self.category_list = category_list
         self.update()
 
     def set_interval(self, interval: str) -> None:
@@ -70,19 +77,20 @@ class Plot:
             start_date = end_date = None
         self.set_date_range(start_date, end_date)
 
-    def get_category(self) -> str:
-        return self.category
+    def get_category_list(self) -> Optional[List[str]]:
+        return self.category_list
 
     def update(self) -> None:
         with Database(self.db_path) as db:
-            if self.category == "*":
+            if self.category_list is None:
                 query = (
                     f"SELECT * FROM {db.table_name} WHERE category IS NOT NULL"
                 )
             else:
+                categories = ",".join([f"'{c}'" for c in self.category_list])
                 query = (
                     f"SELECT * FROM {db.table_name} "
-                    f"WHERE category={self.category}"
+                    f"WHERE category IN ({categories})"
                 )
             if self.start_date is not None:
                 query += f" AND date >= '{self.start_date}'"
@@ -90,6 +98,42 @@ class Plot:
                 query += f" AND date <= '{self.end_date}'"
             self.df = pd.read_sql_query(query, db.connection)
             self.df["date"] = pd.to_datetime(self.df.date, format="%Y-%m-%d")
+
+        # Extrapolate the final year such that if an amount X is spent in N
+        # days, we expect X * 365/N to be spent by the end of the year. The
+        # remainder, X * (365/N - 1), is then split evenly across each
+        # remaining month for the year in the dataframe.
+        if self.extrapolate:
+            d = self.df.date.dt.date.max()
+            y = self.df.date.dt.year.max()
+            N = datetime(d.year, d.month, d.day) - datetime(y, 1, 1)
+            df_final_year = self.df[self.df["date"] >= f"{y}-1-1"]
+            df_sum = df_final_year.groupby("category")["amount"].sum()
+            df_extrapolate = df_sum * 365 / N.days
+            months_remaining = 12 - d.month
+            df_per_month = df_extrapolate / months_remaining
+
+            # Create a set of dataframes, one per extrapolated month.
+            df_list = []
+            extrapolated_dates = [
+                datetime(y, m + 1, 15) for m in range(d.month, 12)
+            ]
+            for date in extrapolated_dates:
+                df_month_list = []
+                for index in df_per_month.index:
+                    df_month_list.append(
+                        {
+                            "date": date,
+                            "category": index,
+                            "name": "__EXTRAPOLATED__",
+                            "amount": df_per_month[index],
+                        }
+                    )
+                df_list.append(pd.DataFrame(df_month_list))
+
+            # Concatenate the dataframes together and add to our df.
+            self.df = pd.concat([self.df] + df_list)
+
         self.fig_pie = px.pie(self.df, values="amount", names="category")
         self.fig_line = self.make_line()
 
