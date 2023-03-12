@@ -355,11 +355,20 @@ class Table:
             columns=columns,
             row_selectable=self.row_selectable,
             dropdown={"category": {"options": dropdown_options}},
+            # style_cell_conditional=[
+            # {
+            # "if": {"column_id": "name"},
+            # "overflow": "hidden",
+            # "textOverflow": "ellipsis",
+            # "maxWidth": 500,    # HACK
+            # },
+            # ],
+            style_table={"overflowX": "auto"},
             css=[
                 {
                     "selector": ".Select-menu-outer",
                     "rule": "display: block !important",
-                }
+                },
             ],  # github.com/plotly/dash-table/issues/221
         )
         self.records = df.to_dict("records")

@@ -66,8 +66,11 @@ def get_next_modal_body():
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div(
     children=[
-        html.Div(id="dummy_checklist_output", style={"display": "none"}),
-        html.Div(id="dummy_table_output", style={"display": "none"}),
+        html.Div(id="dummy1", style={"display": "none"}),
+        html.Div(id="dummy2", style={"display": "none"}),
+        html.Div(id="dummy3", style={"display": "none"}),
+        html.Div(id="dummy4", style={"display": "none"}),
+        html.Div(id="dummy5", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -233,6 +236,30 @@ app.layout = html.Div(
                                 ),
                                 html.Div(
                                     [
+                                        html.Button(
+                                            "Convert",
+                                            id="button_convert",
+                                            style={
+                                                "width": "98%",
+                                                "height": "98%",
+                                                "lineHeight": "60px",
+                                                "borderWidth": "2px",
+                                                "borderStyle": "solid",
+                                                "borderRadius": "5px",
+                                                "textAlign": "center",
+                                                "margin": "1%",
+                                                "float": "center",
+                                            },
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "8%",
+                                        "margin": "1%",
+                                        "float": "right",
+                                    },
+                                ),
+                                html.Div(
+                                    [
                                         html.B("Target category"),
                                         dcc.Dropdown(
                                             id="modal_query_target_dropdown",
@@ -244,7 +271,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "23%",
+                                        "width": "18%",
                                         "margin": "1%",
                                         "float": "right",
                                     },
@@ -264,7 +291,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "23%",
+                                        "width": "18%",
                                         "margin": "1%",
                                         "float": "right",
                                     },
@@ -273,9 +300,15 @@ app.layout = html.Div(
                         ),
                         dbc.ModalFooter(
                             [
-                                state_table_modal.get_table(),
+                                html.Div(
+                                    [state_table_modal.get_table()],
+                                    style={
+                                        "width": "100%",
+                                        "float": "center",
+                                    },
+                                    id="modal_query_container",
+                                ),
                             ],
-                            id="modal_query_footer",
                         ),
                     ],
                     id="modal_query",
@@ -388,8 +421,8 @@ def upload_csv_callback(contents_list, year_options):
     Input("year_dropdown", "value"),  # Wait for callback
     Input("transaction_table_category", "children"),  # Wait for callback
     Input("year_dropdown", "options"),  # Wait for upload csv callback
-    Input("dummy_table_output", "children"),  # Wait for callback
-    Input("dummy_checklist_output", "children"),  # Wait for callback
+    Input("dummy2", "children"),  # Wait for callback
+    Input("dummy1", "children"),  # Wait for callback
     prevent_initial_call=True,
 )
 def refresh_all_callback(categorize_modal_open, *args, **kwargs):
@@ -522,7 +555,7 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
 
 
 @app.callback(
-    Output("dummy_checklist_output", "children"),
+    Output("dummy1", "children"),
     Input("checklist_annual", "value"),
     prevent_initial_call=True,
 )
@@ -556,11 +589,11 @@ def date_picker_range_callback(start_date, end_date, year):
 
 
 @app.callback(
-    Output("dummy_table_output", "children"),
+    Output("dummy2", "children"),
     Input("transaction_table", "data"),
     prevent_initial_call=True,
 )
-def transaction_table_category_change_callback(data):
+def transaction_table_change_callback(data):
     if data is None:
         return
     diff = state_table.diff(data)
@@ -575,17 +608,70 @@ def transaction_table_category_change_callback(data):
 
 
 @app.callback(
-    Output("modal_query_footer", "children"),
+    Output("dummy3", "children"),
     Input("modal_query_text", "value"),
     Input("modal_query_source_dropdown", "value"),
-    State("modal_query_target_dropdown", "value"),
     prevent_initial_call=True,
 )
-def query_table(query, source_category, target_category):
-    if query is None:
-        query = ""
-    state_table_modal.set_regex_query(query)
-    state_table_modal.set_category(source_category)
+def query_table_callback(query, source_category):
+    trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+    if trigger_id == "modal_query_text":
+        if query is None:
+            query = ""
+        state_table_modal.set_regex_query(query)
+    if trigger_id == "modal_query_source_dropdown":
+        state_table_modal.set_category(source_category)
+    return
+
+
+@app.callback(
+    Output("dummy4", "children"),
+    Input("query_table", "data"),
+    prevent_initial_call=True,
+)
+def query_table_change_callback(data):
+    if data is None:
+        return
+    diff = state_table_modal.diff(data)
+    if diff is not None:
+        with Database(DB_PATH) as db:
+            db.set_name_category(
+                name=diff["name"],
+                category=diff["category"],
+            )
+        state_table_modal.update()
+    return
+
+
+@app.callback(
+    Output("dummy5", "children"),
+    Input("button_convert", "n_clicks"),
+    State("modal_query_target_dropdown", "value"),
+    State("query_table", "selected_rows"),
+    State("query_table", "data"),
+    prevent_initial_call=True,
+)
+def convert_button_callback(n_clicks, category, selected_rows, rows):
+    if len(selected_rows) == 0:
+        return
+    for idx in selected_rows:
+        with Database(DB_PATH) as db:
+            db.set_name_category(
+                name=rows[idx]["name"],
+                category=category,
+            )
+    return
+
+
+@app.callback(
+    Output("modal_query_container", "children"),
+    Input("dummy3", "children"),
+    Input("dummy4", "children"),
+    Input("dummy5", "children"),
+    prevent_initial_call=True,
+)
+def refresh_query_table(*args, **kwargs):
+    state_table_modal.update()
     return [state_table_modal.get_table()]
 
 
