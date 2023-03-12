@@ -17,6 +17,18 @@ def compute_similarity(df):
     return df.apply(lambda col: [fuzz.ratio(col.name, x) for x in col.index])
 
 
+class Basic:
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+
+    def get_year_list(self):
+        with Database(self.db_path) as db:
+            query = f"SELECT * FROM {db.table_name}"
+            df = pd.read_sql_query(query, db.connection)
+        df["date"] = pd.to_datetime(df.date, format="%Y-%m-%d")
+        return list(df.groupby(df.date.dt.year)["date"].max().index)
+
+
 class Plot:
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -122,9 +134,6 @@ class Plot:
         if category is not None and category != self.category:
             self.set_category(category)
         return self.fig_line
-
-    def get_year_list(self) -> List[int]:
-        return list(self.df.groupby(self.df.date.dt.year)["date"].max().index)
 
 
 class Uncategorized:

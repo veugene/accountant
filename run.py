@@ -12,12 +12,13 @@ from dash.dependencies import Input, Output, State
 
 from database import Database
 from parsing import parse_csv
-from state import Plot, Table, Uncategorized
+from state import Basic, Plot, Table, Uncategorized
 
 # Database path is hardcoded.
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
+state_basic = Basic(DB_PATH)
 state_table = Table(DB_PATH, table_id="transaction_table")
 state_table_modal = Table(
     DB_PATH, table_id="query_table", group_by_name=True, row_selectable="multi"
@@ -364,7 +365,7 @@ app.layout = html.Div(
                 ),
                 dcc.Dropdown(
                     id="year_dropdown",
-                    options=state_plot.get_year_list(),
+                    options=state_basic.get_year_list(),
                     clearable=True,
                 ),
                 dcc.Checklist(id="checklist_annual", options=["Annual"]),
@@ -394,14 +395,14 @@ app.layout = html.Div(
 
 
 @app.callback(
+    Output("year_dropdown", "options"),
     Output("dummy6", "children"),
     Input("upload_csv", "contents"),
-    State("year_dropdown", "options"),
     prevent_initial_call=True,
 )
-def upload_csv_callback(contents_list, year_options):
+def upload_csv_callback(contents_list):
     if contents_list is None:
-        return year_options
+        return no_update, None
 
     # Parse all transactions from csv files.
     transaction_import_list = []
@@ -425,14 +426,14 @@ def upload_csv_callback(contents_list, year_options):
     with Database(DB_PATH) as db:
         db.add_transactions(transaction_import_list)
 
-    return
+    # Get the list of years in the DB.
+    return state_basic.get_year_list(), None
 
 
 @app.callback(
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
     Output("transaction_table_container", "children"),
-    Output("year_dropdown", "options"),
     Input("modal_categorize", "is_open"),  # Wait for callback
     Input("modal_query", "is_open"),  # Wait for callback
     Input("date_picker_range", "start_date"),  # Wait for callback
@@ -452,11 +453,11 @@ def refresh_all_callback(
 
     if trigger_id == "modal_categorize" and categorize_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
 
     if trigger_id == "modal_query" and query_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
-        return no_update, no_update, no_update, no_update
+        return no_update, no_update, no_update
 
     # Update all states.
     state_table.update()
@@ -468,7 +469,6 @@ def refresh_all_callback(
         state_plot.get_fig_pie(),
         state_plot.get_fig_line(),
         [state_table.get_table()],
-        state_plot.get_year_list(),
     )
 
 
