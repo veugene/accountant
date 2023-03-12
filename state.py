@@ -258,9 +258,9 @@ class Uncategorized:
 
 
 class Table:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, group_by_name: bool = False):
         self.db_path = db_path
-        self.category = "*"
+        self.group_by_name = group_by_name
         self.start_date = None
         self.end_date = None
         self.records = None
@@ -294,6 +294,8 @@ class Table:
         # Query
         if self.category == "*":
             category_query = "category IS NOT NULL"
+        elif self.category is None:
+            category_query = "category IS NULL"
         else:
             category_query = f'category="{self.category}"'
         if self.start_date is not None:
@@ -301,11 +303,20 @@ class Table:
         if self.end_date is not None:
             category_query += f" AND date <= '{self.end_date}'"
         with Database(self.db_path) as db:
-            df = pd.read_sql_query(
-                f"SELECT * FROM {db.table_name} WHERE {category_query} "
-                "ORDER BY date DESC",
-                db.connection,
-            )
+            category_list = db.get_all_categories()
+            if self.group_by_name:
+                df = pd.read_sql_query(
+                    f"SELECT name, COUNT(*), category FROM {db.table_name} "
+                    f"WHERE {category_query} "
+                    "GROUP BY name ORDER BY COUNT(*) DESC",
+                    db.connection,
+                )
+            else:
+                df = pd.read_sql_query(
+                    f"SELECT * FROM {db.table_name} WHERE {category_query} "
+                    "ORDER BY date DESC",
+                    db.connection,
+                )
 
         # Create a table where the 'category' column is editable and has a
         # dropdown menu to select the category.

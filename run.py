@@ -250,10 +250,7 @@ app.layout = html.Div(
                         ),
                         dbc.ModalFooter(
                             [
-                                dash_table.DataTable(
-                                    id="editable_query_table",
-                                    columns=[{"name": "empty", "id": "empty"}],
-                                ),
+                                state_table_modal.get_table(),
                             ],
                         ),
                     ],
