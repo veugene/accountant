@@ -254,6 +254,7 @@ app.layout = html.Div(
                             [
                                 state_table_modal.get_table(),
                             ],
+                            id="modal_query_footer",
                         ),
                     ],
                     id="modal_query",
@@ -550,6 +551,16 @@ def transaction_table_category_change_callback(data):
             )
         state_table.update()
     return
+
+
+@app.callback(
+    Output("modal_query_footer", "children"),
+    Input("modal_query_text", "value"),
+    prevent_initial_call=True,
+)
+def query_table(query):
+    state_table_modal.set_regex_query(query)
+    return [state_table_modal.get_table()]
 
 
 if __name__ == "__main__":

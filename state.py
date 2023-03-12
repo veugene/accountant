@@ -277,6 +277,7 @@ class Table:
 
     def reset(self):
         self.category = "*"
+        self.regex_query = ""
         self.update()
 
     def set_category(self, category: str) -> None:
@@ -313,9 +314,13 @@ class Table:
         with Database(self.db_path) as db:
             category_list = db.get_all_categories()
             if self.group_by_name:
+                db.connection.create_function(
+                    "REGEXP", 2, lambda x, y: 1 if re.search(x, y) else 0
+                )
                 df = pd.read_sql_query(
                     f"SELECT name, COUNT(*), category FROM {db.table_name} "
                     f"WHERE {category_query} "
+                    f"AND name REGEXP '{self.regex_query}' "
                     "GROUP BY name ORDER BY COUNT(*) DESC",
                     db.connection,
                 )
@@ -361,6 +366,10 @@ class Table:
 
     def get_table(self):
         return self.table
+
+    def set_regex_query(self, query: str):
+        self.regex_query = query
+        self.update()
 
     def diff(self, data):
         """
