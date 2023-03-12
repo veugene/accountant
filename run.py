@@ -3,16 +3,14 @@
 
 
 import base64
-import datetime
 import io
 
 import dash
 import dash_bootstrap_components as dbc
-import pandas as pd
 from dash import Dash, dash_table, dcc, html, no_update
 from dash.dependencies import Input, Output, State
 
-from database import Database, Transaction
+from database import Database
 from parsing import parse_csv
 from state import Plot, Table, Uncategorized
 
@@ -75,7 +73,7 @@ app.layout = html.Div(
                         ["Import CSV files (click or drag and drop)"]
                     ),
                     style={
-                        "width": "48%",
+                        "width": "31%",
                         "height": "60px",
                         "lineHeight": "60px",
                         "borderWidth": "1px",
@@ -92,7 +90,22 @@ app.layout = html.Div(
                     "Categorize unknown",
                     id="button_categorize",
                     style={
-                        "width": "48%",
+                        "width": "31%",
+                        "height": "60px",
+                        "lineHeight": "60px",
+                        "borderWidth": "2px",
+                        "borderStyle": "solid",
+                        "borderRadius": "5px",
+                        "textAlign": "center",
+                        "margin": "1%",
+                        "float": "left",
+                    },
+                ),
+                html.Button(
+                    "Query",
+                    id="button_query",
+                    style={
+                        "width": "31%",
                         "height": "60px",
                         "lineHeight": "60px",
                         "borderWidth": "2px",
@@ -295,7 +308,7 @@ def upload_csv_callback(contents_list, year_options):
 )
 def refresh_all_callback(categorize_modal_open, *args, **kwargs):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
-    if trigger_id == "modal_categorize" and categorize_modal_open == True:
+    if trigger_id == "modal_categorize" and categorize_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
         return no_update, no_update, no_update
     state_plot.update()  # Update figure.
@@ -375,7 +388,7 @@ def categorize_callback(
         raise Exception(f"Unexpected callback trigger: {trigger_id}")
 
     # When closing this modal, update category list for table.
-    if set_is_open == False:
+    if set_is_open is False:
         state_table.set_category_options(state_uncategorized.get_categories())
 
     # Update the message and radio items options.

@@ -1,11 +1,9 @@
 import sqlite3
 import warnings
-from datetime import date
 from pathlib import Path
 from shutil import copy
 from typing import List, NamedTuple, Optional, Tuple, Union
-
-from natsort import natsorted
+from zlib import crc32
 
 
 class Transaction(NamedTuple):
@@ -90,7 +88,7 @@ class _Database:
                     raise
                 else:
                     warnings.warn(msg)
-            except:
+            except Exception:
                 print(f"Error when adding transaction: {tx}")
                 raise
         self.connection.commit()
@@ -161,36 +159,31 @@ class _Database:
         retval = [val[0] for val in result.fetchall() if val[0] is not None]
         return retval
 
+    def hash(self):
+        result = self.cursor.execute(
+            f"SELECT * FROM {self.table_name}"
+        ).fetchall()
+        transaction_string_list = []
+        for tx in result:
+            transaction_string_list.append("".join([str(v) for v in tx]))
+        db_string = "\n".join(sorted(transaction_string_list)[-10:])
+        db_hash_dec = crc32(db_string.encode("utf-8"))
+        db_hash = hex(db_hash_dec)[2:]  # Skip initial '0x'; doesn't change
+        return db_hash
+
     def backup(self):
         """
-        Find the last numbered backup file for the day and increment that
-        number. Then save a backup.
+        If a backup with the same hash does not already exist, create one.
 
-        Format: "{filename}.backup_{date}_{number}"
+        Format: "{filename}.backup_{hash}"
 
-        Example: "db.sql.backup_2023-03-06_0001"
-
-        It is possible that a file may exist that matches up to 'number' but
-        with a suffix that does not cast to a number. For this reason, loop
-        over the file candidates to find the last matching backup file for
-        the day.
+        Example: "db.sql.backup_d7f030ec"
         """
-        date_string = date.today().strftime("%Y-%m-%d")
-        name_root = f"{self.database_file_path.name}.backup_{date_string}_"
-        backup_file_list = list(
-            self.database_file_path.parent.glob(f"{name_root}*")
-        )
-        last_backup_num = 0
-        for fn in natsorted(backup_file_list)[::-1]:
-            suffix = str(fn.name).replace(name_root, "")
-            try:
-                last_backup_num = int(suffix)
-            except ValueError:
-                continue
-            else:
-                break
-        backup_fn = f"{name_root}{last_backup_num + 1}"
-        copy(
-            self.database_file_path,
-            Path(self.database_file_path.parent, backup_fn),
-        )
+        hash_db = self.hash()
+        backup_fn = f"{self.database_file_path.name}.backup_{hash_db}"
+        backup_path = Path(self.database_file_path.parent, backup_fn)
+        if not backup_path.exists():
+            copy(
+                self.database_file_path,
+                backup_path,
+            )

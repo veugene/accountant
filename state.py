@@ -1,11 +1,11 @@
 import re
 from multiprocessing import Pool, cpu_count
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from dash import Dash, dash_table, dcc, html
+from dash import dash_table
 from fuzzywuzzy import fuzz
 from plotly.graph_objects import Figure
 
