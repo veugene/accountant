@@ -312,7 +312,9 @@ class Table:
             category_list = db.get_all_categories()
             if self.group_by_name:
                 db.connection.create_function(
-                    "REGEXP", 2, lambda x, y: 1 if re.search(x, y) else 0
+                    "REGEXP",
+                    2,
+                    lambda x, y: 1 if re.search(x, y, re.IGNORECASE) else 0,
                 )
                 df = pd.read_sql_query(
                     f"SELECT name, COUNT(*), category FROM {db.table_name} "
