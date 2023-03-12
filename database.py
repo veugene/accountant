@@ -166,7 +166,7 @@ class _Database:
         transaction_string_list = []
         for tx in result:
             transaction_string_list.append("".join([str(v) for v in tx]))
-        db_string = "\n".join(sorted(transaction_string_list)[-10:])
+        db_string = "\n".join(sorted(transaction_string_list))
         db_hash_dec = crc32(db_string.encode("utf-8"))
         db_hash = hex(db_hash_dec)[2:]  # Skip initial '0x'; doesn't change
         return db_hash
