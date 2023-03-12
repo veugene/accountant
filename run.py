@@ -301,6 +301,11 @@ app.layout = html.Div(
                         ),
                         dbc.ModalFooter(
                             [
+                                dcc.Checklist(
+                                    id="select_all_checklist",
+                                    options=["Select all"],
+                                    style={"float": "left"},
+                                ),
                                 html.Div(
                                     [state_table_modal.get_table()],
                                     style={
@@ -635,6 +640,19 @@ def query_table_callback(query, source_category):
     if trigger_id == "modal_query_source_dropdown":
         state_table_modal.set_category(source_category)
     return
+
+
+@app.callback(
+    Output("query_table", "selected_rows"),
+    Input("select_all_checklist", "value"),
+    State("query_table", "data"),
+    prevent_initial_call=True,
+)
+def select_all_callback(select_all, table_data):
+    selected_rows = []
+    if select_all:
+        selected_rows = list(range(len(table_data)))
+    return selected_rows
 
 
 @app.callback(
