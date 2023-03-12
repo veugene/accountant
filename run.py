@@ -359,18 +359,44 @@ app.layout = html.Div(
         ),
         html.Div(
             [
-                dcc.DatePickerRange(
-                    id="date_picker_range",
-                    clearable=True,
+                html.Div(
+                    [
+                        html.B("Date range"),
+                        html.Br(),
+                        dcc.DatePickerRange(
+                            id="date_picker_range",
+                            clearable=True,
+                        ),
+                    ],
+                    style={"float": "left", "margin": "1%"},
                 ),
-                dcc.Dropdown(
-                    id="year_dropdown",
-                    options=state_basic.get_year_list(),
-                    clearable=True,
+                html.Div(
+                    [
+                        html.B("Year"),
+                        html.Br(),
+                        dcc.Dropdown(
+                            id="year_dropdown",
+                            options=state_basic.get_year_list(),
+                            clearable=True,
+                        ),
+                    ],
+                    style={"float": "left", "width": "10%", "margin": "1%"},
                 ),
-                dcc.Checklist(id="checklist_annual", options=["Annual"]),
+                html.Div(
+                    [
+                        html.B("Interval"),
+                        html.Br(),
+                        dcc.RadioItems(
+                            ["Annual", "Monthly"],
+                            value="Annual",
+                            labelStyle={"display": "block"},
+                            id="radio_interval",
+                        ),
+                    ],
+                    style={"float": "left", "width": "10%", "margin": "1%"},
+                ),
             ],
-            style={"float": "left", "margin": "1%"},
+            style={"float": "left", "width": "100%", "margin": "1%"},
         ),
         html.Br(),
         html.Div(
@@ -590,16 +616,14 @@ def click_pie_chart_callback(click_data, start_date, end_date, year):
 
 @app.callback(
     Output("dummy1", "children"),
-    Input("checklist_annual", "value"),
+    Input("radio_interval", "value"),
     prevent_initial_call=True,
 )
-def checklist_annual_callback(value):
-    if value is not None:
-        if len(value):
-            state_plot.set_interval("YS")
-        else:
-            state_plot.set_interval("MS")
-    return None
+def radio_interval_callback(value):
+    if value == "Annual":
+        state_plot.set_interval("YS")
+    elif value == "Monthly":
+        state_plot.set_interval("MS")
 
 
 @app.callback(

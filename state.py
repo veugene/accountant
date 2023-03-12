@@ -33,7 +33,7 @@ class Plot:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.category = "*"
-        self.interval = "MS"
+        self.interval = "YS"
         self.start_date = None
         self.end_date = None
         self.update()
