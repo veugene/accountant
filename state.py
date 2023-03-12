@@ -181,10 +181,7 @@ class Uncategorized:
         self.name_mapping = name_mapping
 
     def get_categories(self) -> List[str]:
-        category_list = sorted(
-            [c for c in self.category_list if c != "__UNKNOWN__"]
-        )
-        return category_list
+        return sorted(self.category_list)
 
     def get_name_to_process(self) -> Tuple[str, int, Transaction, int, int]:
         if self._idx >= len(self.uncategorized_names):
@@ -333,7 +330,7 @@ class Table:
 
         # Create a table where the 'category' column is editable and has a
         # dropdown menu to select the category.
-        category_options = [c for c in category_list if c != "__UNKNOWN__"]
+        category_options = [c for c in category_list]
         dropdown_options = [{"label": i, "value": i} for i in category_options]
         columns = []
         for c in df.columns:

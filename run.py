@@ -58,6 +58,7 @@ def get_next_modal_body():
             ),
         ]
         options = state_uncategorized.get_categories()
+        options = [c for c in options if c != "__UNKNOWN__"]
     return message, similar_names, options
 
 
