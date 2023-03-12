@@ -142,7 +142,7 @@ class Plot:
 
         # Empty figure.
         if len(self.df) == 0:
-            return px.line(self.df, x="date", y=[])
+            return px.area(self.df, x="date", y=[])
 
         # Group amounts by category, interpolate index by time interval, and
         # within each interval, sum all the amounts of each category.
@@ -159,7 +159,7 @@ class Plot:
 
         # Simplify MultiIndex columns (amount, <category>) to just category names.
         df.columns = df.columns.get_level_values(1)
-        fig = px.line(df, x=df.index, y=df.columns)
+        fig = px.area(df, x=df.index, y=df.columns)
         if self.interval == "MS":
             fig.update_layout(
                 xaxis={"tickangle": 90, "dtick": "M1", "tickformat": "%b %Y"}
