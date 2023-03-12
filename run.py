@@ -225,7 +225,7 @@ app.layout = html.Div(
                                         ),
                                     ],
                                     style={
-                                        "width": "73%",
+                                        "width": "48%",
                                         "margin": "1%",
                                         "float": "left",
                                     },
@@ -234,8 +234,28 @@ app.layout = html.Div(
                                     [
                                         html.B("Target category"),
                                         dcc.Dropdown(
-                                            id="modal_query_dropdown",
+                                            id="modal_query_target_dropdown",
                                             options=state_uncategorized.get_categories(),
+                                            clearable=True,
+                                            style={
+                                                "width": "100%",
+                                            },
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "23%",
+                                        "margin": "1%",
+                                        "float": "right",
+                                    },
+                                ),
+                                html.Div(
+                                    [
+                                        html.B("Source category"),
+                                        dcc.Dropdown(
+                                            id="modal_query_source_dropdown",
+                                            value="*",
+                                            options=["*"]
+                                            + state_uncategorized.get_categories(),
                                             clearable=True,
                                             style={
                                                 "width": "100%",
@@ -556,10 +576,15 @@ def transaction_table_category_change_callback(data):
 @app.callback(
     Output("modal_query_footer", "children"),
     Input("modal_query_text", "value"),
+    Input("modal_query_source_dropdown", "value"),
+    State("modal_query_target_dropdown", "value"),
     prevent_initial_call=True,
 )
-def query_table(query):
+def query_table(query, source_category, target_category):
+    if query is None:
+        query = ""
     state_table_modal.set_regex_query(query)
+    state_table_modal.set_category(source_category)
     return [state_table_modal.get_table()]
 
 
