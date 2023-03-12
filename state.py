@@ -1,5 +1,6 @@
 import re
 from multiprocessing import Pool, cpu_count
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -142,9 +143,12 @@ class Uncategorized:
     def reset(self):
         self._current_name = None
         self._history = {}
+        self.compute_name_similarity_matrix()
+        self.update()
 
-        # Make a name similarity matrix.
+    def compute_name_similarity_matrix(self):
         with Database(self.db_path) as db:
+            db_hash = db.hash()
             all_names = db.cursor.execute(
                 f"SELECT name FROM {db.table_name}"
             ).fetchall()
@@ -152,21 +156,29 @@ class Uncategorized:
             re.sub(r"[\W\d]+", "", name[0].lower()): name[0]
             for name in all_names
         }
-        df = pd.DataFrame(
-            zip(name_mapping.keys(), name_mapping.values()),
-            columns=["key", "name"],
-        )
-        ct = pd.crosstab(df["key"], df["key"])
-        ct_split = np.array_split(ct, cpu_count())
-        with Pool(cpu_count()) as pool:
-            print("Computing name similarities ...")
-            ct = pd.concat(pool.map(compute_similarity, ct_split))
-            print("DONE")
+
+        # Load from cache if exists, else compute and save cache.
+        cache_dir = Path(self.db_path).parent.joinpath(".similarity_cache")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_path = cache_dir.joinpath(f"{db_hash}")
+        if cache_path.exists():
+            ct = pd.read_csv(cache_path).set_index("key")
+            print("Loaded name similarities from cache")
+        else:
+            df = pd.DataFrame(
+                zip(name_mapping.keys(), name_mapping.values()),
+                columns=["key", "name"],
+            )
+            ct = pd.crosstab(df["key"], df["key"])
+            ct_split = np.array_split(ct, cpu_count())
+            with Pool(cpu_count()) as pool:
+                print("Computing name similarities ...")
+                ct = pd.concat(pool.map(compute_similarity, ct_split))
+                print("DONE")
+            ct.to_csv(cache_path)
+
         self.name_similarity = ct
         self.name_mapping = name_mapping
-
-        # Update
-        self.update()
 
     def get_categories(self) -> List[str]:
         category_list = sorted(
@@ -198,7 +210,6 @@ class Uncategorized:
 
         # Identify similar names.
         similar_names = self.get_similar_names(name)
-        print(similar_names)
 
         return name, similar_names, count, tx_example, n_done, n_total
 

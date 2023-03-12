@@ -203,7 +203,7 @@ app.layout = html.Div(
                     [
                         dbc.ModalHeader(
                             [
-                                html.B("Category selection by regex name query"),
+                                html.B("Categorization by regex name query"),
                             ]
                         ),
                         dbc.ModalBody(
@@ -234,7 +234,7 @@ app.layout = html.Div(
                                         dcc.Dropdown(
                                             id="modal_query_dropdown",
                                             options=state_uncategorized.get_categories(),
-                                            clearable=True,   
+                                            clearable=True,
                                             style={
                                                 "width": "100%",
                                             },
@@ -350,6 +350,9 @@ def upload_csv_callback(contents_list, year_options):
     # Update year options in dropdown.
     state_plot.update()
     year_options = state_plot.get_year_list()
+
+    # Update name similarity matrix.
+    state_uncategorized.compute_name_similarity_matrix()
 
     return year_options
 
@@ -472,12 +475,12 @@ def query_callback(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     set_is_open = is_open
-    
+
     # If the modal dialog is toggled.
     if trigger_id == "button_query":
         if n_clicks_open:
             set_is_open = not set_is_open
-            
+
     return set_is_open
 
 
