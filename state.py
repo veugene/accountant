@@ -348,9 +348,8 @@ class Table:
 
     def diff(self, data):
         """
-        First stores the DataTable data list if it hasn't already. Then, on the
-        next call, compares the data lists together and finds the first difference.
-        Only the category is expected to change.
+        Compares the entries dash table to those in this table. Returns the
+        first entry for which the category differs.
         """
         assert self.records is not None
         assert len(data) == len(self.records)
