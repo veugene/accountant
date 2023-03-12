@@ -335,7 +335,7 @@ class Table:
                     "GROUP BY name ORDER BY COUNT(*) DESC",
                     db.connection,
                 )
-                df["SUM(amount)"] = df["SUM(amount)"].map("${:,.2f}".format)
+                df["SUM(amount)"] = df["SUM(amount)"].map(lambda x: round(x, 2))
             else:
                 df = pd.read_sql_query(
                     f"SELECT * FROM {db.table_name} WHERE {category_query} "
