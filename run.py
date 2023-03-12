@@ -71,6 +71,7 @@ app.layout = html.Div(
         html.Div(id="dummy3", style={"display": "none"}),
         html.Div(id="dummy4", style={"display": "none"}),
         html.Div(id="dummy5", style={"display": "none"}),
+        html.Div(id="dummy6", style={"display": "none"}),
         html.Div(
             [
                 dcc.Upload(
@@ -372,7 +373,7 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("year_dropdown", "options"),
+    Output("dummy6", "children"),
     Input("upload_csv", "contents"),
     State("year_dropdown", "options"),
     prevent_initial_call=True,
@@ -403,21 +404,16 @@ def upload_csv_callback(contents_list, year_options):
     with Database(DB_PATH) as db:
         db.add_transactions(transaction_import_list)
 
-    # Update year options in dropdown.
-    state_plot.update()
-    year_options = state_plot.get_year_list()
-
-    # Update name similarity matrix.
-    state_uncategorized.compute_name_similarity_matrix()
-
-    return year_options
+    return
 
 
 @app.callback(
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
     Output("transaction_table_container", "children"),
+    Output("year_dropdown", "options"),
     Input("modal_categorize", "is_open"),  # Wait for callback
+    Input("modal_query", "is_open"),  # Wait for callback
     Input("date_picker_range", "start_date"),  # Wait for callback
     Input("date_picker_range", "end_date"),  # Wait for callback
     Input("year_dropdown", "value"),  # Wait for callback
@@ -425,18 +421,33 @@ def upload_csv_callback(contents_list, year_options):
     Input("year_dropdown", "options"),  # Wait for upload csv callback
     Input("dummy2", "children"),  # Wait for callback
     Input("dummy1", "children"),  # Wait for callback
+    Input("dummy6", "children"),  # Wait for callback
     prevent_initial_call=True,
 )
-def refresh_all_callback(categorize_modal_open, *args, **kwargs):
+def refresh_all_callback(
+    categorize_modal_open, query_modal_open, *args, **kwargs
+):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
+
     if trigger_id == "modal_categorize" and categorize_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
-        return no_update, no_update, no_update
-    state_plot.update()  # Update figure.
+        return no_update, no_update, no_update, no_update
+
+    if trigger_id == "modal_query" and query_modal_open is True:
+        # Update only when the modal is closed, not when it is opened.
+        return no_update, no_update, no_update, no_update
+
+    # Update all states.
+    state_table.update()
+    state_table_modal.update()
+    state_plot.update()
+    state_uncategorized.update()
+
     return (
         state_plot.get_fig_pie(),
         state_plot.get_fig_line(),
         [state_table.get_table()],
+        state_plot.get_year_list(),
     )
 
 
@@ -667,6 +678,8 @@ def convert_button_callback(n_clicks, category, selected_rows, rows):
 
 @app.callback(
     Output("modal_query_container", "children"),
+    Output("modal_query_target_dropdown", "options"),
+    Output("modal_query_source_dropdown", "options"),
     Input("dummy3", "children"),
     Input("dummy4", "children"),
     Input("dummy5", "children"),
@@ -674,7 +687,9 @@ def convert_button_callback(n_clicks, category, selected_rows, rows):
 )
 def refresh_query_table(*args, **kwargs):
     state_table_modal.update()
-    return [state_table_modal.get_table()]
+    state_uncategorized.update()
+    categories = state_uncategorized.get_categories()
+    return [state_table_modal.get_table()], categories, ["*"] + categories
 
 
 if __name__ == "__main__":
