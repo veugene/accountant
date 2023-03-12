@@ -20,13 +20,21 @@ def compute_similarity(df):
 class Basic:
     def __init__(self, db_path: str):
         self.db_path = db_path
+        self.update()
 
-    def get_year_list(self):
+    def update(self):
         with Database(self.db_path) as db:
+            self.category_list = db.get_all_categories()
             query = f"SELECT * FROM {db.table_name}"
             df = pd.read_sql_query(query, db.connection)
         df["date"] = pd.to_datetime(df.date, format="%Y-%m-%d")
-        return list(df.groupby(df.date.dt.year)["date"].max().index)
+        self.year_list = list(df.groupby(df.date.dt.year)["date"].max().index)
+
+    def get_year_list(self) -> List[int]:
+        return self.year_list
+
+    def get_categories(self) -> List[str]:
+        return sorted(self.category_list)
 
 
 class Plot:
@@ -193,9 +201,6 @@ class Uncategorized:
 
         self.name_similarity = ct
         self.name_mapping = name_mapping
-
-    def get_categories(self) -> List[str]:
-        return sorted(self.category_list)
 
     def get_name_to_process(self) -> Tuple[str, int, Transaction, int, int]:
         # Raise StopIteration when no more uncategorized_names left.

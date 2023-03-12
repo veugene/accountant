@@ -58,7 +58,7 @@ def get_next_modal_body():
                 ]
             ),
         ]
-        options = state_uncategorized.get_categories()
+        options = state_basic.get_categories()
         options = [c for c in options if c != "__UNKNOWN__"]
     return message, similar_names, options
 
@@ -134,7 +134,7 @@ app.layout = html.Div(
                                 html.Div(
                                     [
                                         dcc.RadioItems(
-                                            [],
+                                            state_basic.get_categories(),
                                             labelStyle={"display": "block"},
                                             id="modal_categorize_radio_items",
                                         ),
@@ -281,7 +281,7 @@ app.layout = html.Div(
                                         html.B("Target category"),
                                         dcc.Dropdown(
                                             id="modal_query_target_dropdown",
-                                            options=state_uncategorized.get_categories(),
+                                            options=state_basic.get_categories(),
                                             clearable=True,
                                             style={
                                                 "width": "100%",
@@ -301,7 +301,7 @@ app.layout = html.Div(
                                             id="modal_query_source_dropdown",
                                             value="*",
                                             options=["*"]
-                                            + state_uncategorized.get_categories(),
+                                            + state_basic.get_categories(),
                                             clearable=True,
                                             style={
                                                 "width": "100%",
@@ -395,8 +395,52 @@ app.layout = html.Div(
                     ],
                     style={"float": "left", "width": "10%", "margin": "1%"},
                 ),
+                html.Div(
+                    [
+                        html.B("Filter categories"),
+                        html.Br(),
+                        html.Button("Select", id="button_select_categories"),
+                    ],
+                    style={"float": "left", "width": "10%", "margin": "1%"},
+                ),
             ],
             style={"float": "left", "width": "100%", "margin": "1%"},
+        ),
+        dbc.Modal(
+            [
+                dbc.ModalHeader(
+                    [
+                        html.B("Select categories to display"),
+                    ]
+                ),
+                dbc.ModalBody(
+                    dcc.Checklist(
+                        id="select_all_categories_checklist",
+                        options=["Select all"],
+                        value=["Select all"],
+                        style={"float": "left"},
+                    ),
+                ),
+                dbc.ModalFooter(
+                    [
+                        html.Div(
+                            dcc.Checklist(
+                                options=state_basic.get_categories(),
+                                value=state_basic.get_categories(),
+                                labelStyle={"display": "block"},
+                                id="modal_checklist_category_selection",
+                            ),
+                            style={
+                                "width": "100%",
+                                "float": "center",
+                            },
+                        ),
+                    ],
+                ),
+            ],
+            id="modal_select_categories",
+            is_open=False,
+            size="sm",
         ),
         html.Br(),
         html.Div(
@@ -460,8 +504,10 @@ def upload_csv_callback(contents_list):
     Output("pie_chart", "figure"),
     Output("line_plot", "figure"),
     Output("transaction_table_container", "children"),
+    Output("modal_checklist_category_selection", "options"),
     Input("modal_categorize", "is_open"),  # Wait for callback
     Input("modal_query", "is_open"),  # Wait for callback
+    Input("modal_select_categories", "is_open"),  # Wait for callback
     Input("date_picker_range", "start_date"),  # Wait for callback
     Input("date_picker_range", "end_date"),  # Wait for callback
     Input("year_dropdown", "value"),  # Wait for callback
@@ -473,19 +519,24 @@ def upload_csv_callback(contents_list):
     prevent_initial_call=True,
 )
 def refresh_all_callback(
-    categorize_modal_open, query_modal_open, *args, **kwargs
+    categorize_modal_open, query_modal_open, select_modal_open, *args, **kwargs
 ):
     trigger_id = dash.callback_context.triggered[0]["prop_id"].split(".")[0]
 
     if trigger_id == "modal_categorize" and categorize_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
 
     if trigger_id == "modal_query" and query_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
-        return no_update, no_update, no_update
+        return no_update, no_update, no_update, no_update
+
+    if trigger_id == "modal-select_categories" and select_modal_open is True:
+        # Update only when the modal is closed, not when it is opened.
+        return no_update, no_update, no_update, no_update
 
     # Update all states.
+    state_basic.update()
     state_table.update()
     state_table_modal.update()
     state_plot.update()
@@ -495,6 +546,7 @@ def refresh_all_callback(
         state_plot.get_fig_pie(),
         state_plot.get_fig_line(),
         [state_table.get_table()],
+        state_basic.get_categories(),
     )
 
 
@@ -769,13 +821,40 @@ def clear_dropdown_or_input_field(dropdown_value, input_value):
 def refresh_query_table(*args, **kwargs):
     state_table_modal.update()
     state_uncategorized.update()
-    categories = state_uncategorized.get_categories()
+    categories = state_basic.get_categories()
     return (
         [state_table_modal.get_table()],
         categories,
         ["*"] + categories,
         [],
     )
+
+
+@app.callback(
+    Output("modal_select_categories", "is_open"),
+    Input("button_select_categories", "n_clicks"),
+    State("modal_categorize", "is_open"),
+    prevent_initial_call=True,
+)
+def categorize_callback(
+    n_clicks_open,
+    is_open,
+):
+    if n_clicks_open:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("modal_checklist_category_selection", "value"),
+    Input("select_all_categories_checklist", "value"),
+    State("modal_checklist_category_selection", "options"),
+    prevent_initial_call=True,
+)
+def select_all_callback(select_all, options):
+    if select_all:
+        return options
+    return []
 
 
 if __name__ == "__main__":
