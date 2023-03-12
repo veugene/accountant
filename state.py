@@ -317,12 +317,14 @@ class Table:
                     lambda x, y: 1 if re.search(x, y, re.IGNORECASE) else 0,
                 )
                 df = pd.read_sql_query(
-                    f"SELECT name, COUNT(*), category FROM {db.table_name} "
+                    "SELECT name, COUNT(*), SUM(amount), "
+                    f"category FROM {db.table_name} "
                     f"WHERE {category_query} "
                     f"AND name REGEXP '{self.regex_query}' "
                     "GROUP BY name ORDER BY COUNT(*) DESC",
                     db.connection,
                 )
+                df["SUM(amount)"] = df["SUM(amount)"].map("${:,.2f}".format)
             else:
                 df = pd.read_sql_query(
                     f"SELECT * FROM {db.table_name} WHERE {category_query} "
