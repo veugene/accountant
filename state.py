@@ -131,26 +131,31 @@ class Uncategorized:
     def __init__(self, db_path: str):
         self.db_path = db_path
         self._current_name = None
-        self._history = {}
+        self._history = []
+        self.compute_name_similarity_matrix()
         self.reset()
 
     def update(self):
         with Database(self.db_path) as db:
             self.uncategorized_names = db.get_uncategorized_names()
+            for name, _, _ in self._history:
+                # History contains skipped items that are still uncategorized
+                # in the database. Ignore these by removing them.
+                if name in self.uncategorized_names:
+                    self.uncategorized_names.pop(name)
             self.category_list = db.get_all_categories()
-            self._idx = 0
 
     def reset(self):
         self._current_name = None
-        self._history = {}
-        self.compute_name_similarity_matrix()
+        self._history = []
         self.update()
 
     def compute_name_similarity_matrix(self):
         with Database(self.db_path) as db:
             db_hash = db.hash()
             all_names = db.cursor.execute(
-                f"SELECT name FROM {db.table_name}"
+                f"SELECT name FROM {db.table_name} WHERE category=?",
+                ("__UNKNOWN__",),
             ).fetchall()
         name_mapping = {
             re.sub(r"[\W\d]+", "", name[0].lower()): name[0]
@@ -184,16 +189,19 @@ class Uncategorized:
         return sorted(self.category_list)
 
     def get_name_to_process(self) -> Tuple[str, int, Transaction, int, int]:
-        if self._idx >= len(self.uncategorized_names):
+        # Raise StopIteration when no more uncategorized_names left.
+        if len(self.uncategorized_names) == 0:
             self.reset()
             raise StopIteration
-        self._current_name = self.uncategorized_names[self._idx]
-        while self._current_name[0] in self._history:
-            self._idx += 1
-            self._current_name = self.uncategorized_names[self._idx]
+
+        # Iterate names in reverse order (highest count to lowest). This
+        # makes it easy to re-add items to the end of the dict, in case of
+        # undo.
+        name = list(self.uncategorized_names.keys())[-1]
+        count = self.uncategorized_names[name]
+        self._current_name = name
 
         # Get one example of a matching transaction.
-        name, count = self._current_name
         with Database(self.db_path) as db:
             result = db.cursor.execute(
                 f"SELECT * FROM {db.table_name} WHERE name=? LIMIT 1",
@@ -203,7 +211,7 @@ class Uncategorized:
 
         # Count progress.
         n_done = len(self._history)
-        n_total = len(self.uncategorized_names)
+        n_total = n_done + len(self.uncategorized_names)
 
         # Identify similar names.
         similar_names = self.get_similar_names(name)
@@ -218,39 +226,42 @@ class Uncategorized:
         return similar_names[1:]  # Skip self match
 
     def set_category(
-        self,
-        category: str,
-        similar_names: Optional[List[str]] = None,
+        self, category: str, similar_names: Optional[List[str]] = None
     ):
         if similar_names is None:
             similar_names = []
-        name, count = self._current_name
+        name = self._current_name
+        count = self.uncategorized_names.pop(name)
         with Database(self.db_path) as db:
             db.set_name_category(name, category)
             for s_name in similar_names:
                 db.set_name_category(s_name, category)
-        self._history[name] = (category, count, similar_names)
-        self._idx += 1
+        self._history.append((name, count, similar_names))
         self.update()
 
     def skip(self):
-        name, count = self._current_name
-        self._history[name] = ("__UNKNOWN__", count, [])
-        self._idx += 1
+        """
+        Move from uncategorized_names to history without updating DB.
+        """
+        name = self._current_name
+        count = self.uncategorized_names.pop(name)
+        self._history.append((name, count, []))
 
     def undo(self):
         if len(self._history) == 0:
+            # Nothing to undo.
             return
 
-        previous_name = list(self._history.keys())[-1]
-        category, count, similar_names = self._history.pop(previous_name)
-        if self._idx > 0:
-            self._idx -= 1
-        self._current_name = (previous_name, count)
+        name, count, similar_names = self._history.pop()  # Remove
+        self._current_name = (name, count)  # Pointer
+        self.uncategorized_names[name] = count  # Restore
+
+        # Roll back DB changes.
         with Database(self.db_path) as db:
-            db.set_name_category(previous_name, "__UNKNOWN__")
+            db.set_name_category(name, "__UNKNOWN__")
             for s_name in similar_names:
                 db.set_name_category(s_name, "__UNKNOWN__")
+
         self.update()
 
 

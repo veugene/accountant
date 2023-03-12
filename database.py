@@ -2,7 +2,7 @@ import sqlite3
 import warnings
 from pathlib import Path
 from shutil import copy
-from typing import List, NamedTuple, Optional, Tuple, Union
+from typing import Dict, List, NamedTuple, Optional, Tuple, Union
 from zlib import crc32
 
 
@@ -127,7 +127,7 @@ class _Database:
         assert len(set(category_list)) == 1
         return category_list[0][0]
 
-    def get_uncategorized_names(self) -> List[Tuple[str, int]]:
+    def get_uncategorized_names(self) -> Dict[str, int]:
         """
         Sorts the distinct names according to how often they appear.
         """
@@ -136,10 +136,10 @@ class _Database:
             f"FROM {self.table_name} "
             "WHERE category=? "
             "GROUP BY name "
-            "ORDER BY COUNT(*) DESC",
+            "ORDER BY COUNT(*) ASC, name DESC",
             ("__UNKNOWN__",),
         )
-        return result.fetchall()
+        return dict(result.fetchall())
 
     def set_name_category(self, name: str, category: Optional[str]) -> None:
         if category is None:

@@ -489,7 +489,7 @@ def categorize_callback(
 
     # Ignore button pressed. Set a None category.
     elif trigger_id == "button_ignore_modal_categorize":
-        state_uncategorized.set_category(None)
+        state_uncategorized.set_category(None, selected_similar_names)
 
     # Undo previous action.
     elif trigger_id == "button_undo_modal_categorize":
