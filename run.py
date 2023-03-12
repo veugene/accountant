@@ -18,8 +18,10 @@ from state import Plot, Table, Uncategorized
 DB_PATH = "/home/eugene/.local/bank_records/db.sql"
 
 # State is kept here.
-state_table = Table(DB_PATH)
-state_table_modal = Table(DB_PATH, group_by_name=True)
+state_table = Table(DB_PATH, table_id="transaction_table")
+state_table_modal = Table(
+    DB_PATH, table_id="query_table", group_by_name=True, row_selectable="multi"
+)
 state_plot = Plot(DB_PATH)
 state_uncategorized = Uncategorized(DB_PATH)
 
@@ -300,7 +302,7 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     dash_table.DataTable(
-                        id="editable_transaction_table",
+                        id="transaction_table",
                         columns=[{"name": "empty", "id": "empty"}],
                     ),
                     id="transaction_table_container",
@@ -533,7 +535,7 @@ def date_picker_range_callback(start_date, end_date, year):
 
 @app.callback(
     Output("dummy_table_output", "children"),
-    Input("editable_transaction_table", "data"),
+    Input("transaction_table", "data"),
     prevent_initial_call=True,
 )
 def transaction_table_category_change_callback(data):

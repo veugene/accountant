@@ -258,9 +258,17 @@ class Uncategorized:
 
 
 class Table:
-    def __init__(self, db_path: str, group_by_name: bool = False):
+    def __init__(
+        self,
+        db_path: str,
+        table_id: str = "table",
+        group_by_name: bool = False,
+        row_selectable: str = "multi",
+    ):
         self.db_path = db_path
+        self.table_id = table_id
         self.group_by_name = group_by_name
+        self.row_selectable = row_selectable
         self.start_date = None
         self.end_date = None
         self.records = None
@@ -336,9 +344,10 @@ class Table:
             else:
                 columns.append({"name": c, "id": c})
         table = dash_table.DataTable(
-            id="editable_transaction_table",
+            id=self.table_id,
             data=df.to_dict("records"),
             columns=columns,
+            row_selectable=self.row_selectable,
             dropdown={"category": {"options": dropdown_options}},
             css=[
                 {
