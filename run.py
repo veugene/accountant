@@ -102,7 +102,7 @@ app.layout = html.Div(
                     },
                 ),
                 html.Button(
-                    "Query",
+                    "Regex query",
                     id="button_query",
                     style={
                         "width": "31%",
@@ -196,6 +196,68 @@ app.layout = html.Div(
                         ),
                     ],
                     id="modal_categorize",
+                    is_open=False,
+                    size="xl",
+                ),
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(
+                            [
+                                html.B("Category selection by regex name query"),
+                            ]
+                        ),
+                        dbc.ModalBody(
+                            id="modal_query_body",
+                            children=[
+                                html.Div(
+                                    [
+                                        html.B("Name query (regex)"),
+                                        dcc.Input(
+                                            type="text",
+                                            debounce=True,
+                                            id="modal_query_text",
+                                            style={
+                                                "overflow": "auto",
+                                                "width": "100%",
+                                            },
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "73%",
+                                        "margin": "1%",
+                                        "float": "left",
+                                    },
+                                ),
+                                html.Div(
+                                    [
+                                        html.B("Target category"),
+                                        dcc.Dropdown(
+                                            id="modal_query_dropdown",
+                                            options=state_uncategorized.get_categories(),
+                                            clearable=True,   
+                                            style={
+                                                "width": "100%",
+                                            },
+                                        ),
+                                    ],
+                                    style={
+                                        "width": "23%",
+                                        "margin": "1%",
+                                        "float": "right",
+                                    },
+                                ),
+                            ],
+                        ),
+                        dbc.ModalFooter(
+                            [
+                                dash_table.DataTable(
+                                    id="editable_query_table",
+                                    columns=[{"name": "empty", "id": "empty"}],
+                                ),
+                            ],
+                        ),
+                    ],
+                    id="modal_query",
                     is_open=False,
                     size="xl",
                 ),
@@ -395,6 +457,28 @@ def categorize_callback(
     message, similar_names, options = get_next_modal_body()
 
     return set_is_open, message, similar_names, options, None, ""
+
+
+@app.callback(
+    Output("modal_query", "is_open"),
+    Input("button_query", "n_clicks"),
+    State("modal_query", "is_open"),
+    prevent_initial_call=True,
+)
+def query_callback(
+    n_clicks_open,
+    is_open,
+):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    set_is_open = is_open
+    
+    # If the modal dialog is toggled.
+    if trigger_id == "button_query":
+        if n_clicks_open:
+            set_is_open = not set_is_open
+            
+    return set_is_open
 
 
 @app.callback(
