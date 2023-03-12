@@ -349,6 +349,7 @@ app.layout = html.Div(
             ],
             style={"float": "left", "margin": "1%"},
         ),
+        html.Br(),
         html.Div(
             [
                 html.Div(
@@ -356,14 +357,15 @@ app.layout = html.Div(
                     id="transaction_table_category",
                 ),
                 html.Div(
-                    dash_table.DataTable(
-                        id="transaction_table",
-                        columns=[{"name": "empty", "id": "empty"}],
-                    ),
+                    # dash_table.DataTable(
+                    # id="transaction_table",
+                    # columns=[{"name": "empty", "id": "empty"}],
+                    # ),
+                    state_table.get_table(),
                     id="transaction_table_container",
                 ),
             ],
-            style={"width": "31%", "float": "left", "margin": "1%"},
+            style={"width": "100%", "float": "left", "margin": "1%"},
         ),
     ],
 )
