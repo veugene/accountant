@@ -365,6 +365,7 @@ class Table:
             data=df.to_dict("records"),
             columns=columns,
             row_selectable=self.row_selectable,
+            sort_action="native",
             dropdown={"category": {"options": dropdown_options}},
             # style_cell_conditional=[
             # {
