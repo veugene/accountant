@@ -83,9 +83,7 @@ class Plot:
     def update(self) -> None:
         with Database(self.db_path) as db:
             if self.category_list is None:
-                query = (
-                    f"SELECT * FROM {db.table_name} WHERE category IS NOT NULL"
-                )
+                query = f"SELECT * FROM {db.table_name} WHERE category IS NOT NULL"
             else:
                 categories = ",".join([f"'{c}'" for c in self.category_list])
                 query = (
@@ -219,8 +217,7 @@ class Uncategorized:
                 ("__UNKNOWN__",),
             ).fetchall()
         name_mapping = {
-            re.sub(r"[\W\d]+", "", name[0].lower()): name[0]
-            for name in all_names
+            re.sub(r"[\W\d]+", "", name[0].lower()): name[0] for name in all_names
         }
 
         # Load from cache if exists, else compute and save cache.
@@ -283,9 +280,7 @@ class Uncategorized:
         similar_names = [self.name_mapping[key] for key in similar_keys]
         return similar_names[1:]  # Skip self match
 
-    def set_category(
-        self, category: str, similar_names: Optional[List[str]] = None
-    ):
+    def set_category(self, category: str, similar_names: Optional[List[str]] = None):
         if similar_names is None:
             similar_names = []
         name = self._current_name
