@@ -136,7 +136,7 @@ class _Database:
             f"FROM {self.table_name} "
             "WHERE category=? "
             "GROUP BY name "
-            "ORDER BY COUNT(*) ASC, name DESC",
+            "ORDER BY COUNT(*) ASC, SUM(amount) ASC, name DESC",
             ("__UNKNOWN__",),
         )
         return dict(result.fetchall())
