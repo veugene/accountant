@@ -106,27 +106,27 @@ class Plot:
         if self.extrapolate:
             d = self.df.date.dt.date.max()
             y = self.df.date.dt.year.max()
-            N = datetime(d.year, d.month, d.day) - datetime(y, 1, 1)
+            last_date = datetime(d.year, d.month, d.day)
+            N = last_date - datetime(y, 1, 1)
             df_final_year = self.df[self.df["date"] >= f"{y}-1-1"]
             df_sum = df_final_year.groupby("category")["amount"].sum()
-            df_extrapolate = df_sum * 365 / N.days
+            df_per_day = df_sum / N.days
             months_remaining = 12 - d.month
-            df_per_month = df_extrapolate / months_remaining
 
             # Create a set of dataframes, one per extrapolated month.
             df_list = []
-            extrapolated_dates = [
-                datetime(y, m + 1, 15) for m in range(d.month, 12)
-            ]
+            extrapolated_dates = [datetime(y, m + 1, 15) for m in range(d.month, 12)]
             for date in extrapolated_dates:
+                n_days = (date - last_date).days
+                last_date = date
                 df_month_list = []
-                for index in df_per_month.index:
+                for index in df_per_day.index:
                     df_month_list.append(
                         {
                             "date": date,
                             "category": index,
                             "name": "__EXTRAPOLATED__",
-                            "amount": df_per_month[index],
+                            "amount": df_per_day[index] * n_days,
                         }
                     )
                 df_list.append(pd.DataFrame(df_month_list))
