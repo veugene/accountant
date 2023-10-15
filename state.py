@@ -102,18 +102,19 @@ class Plot:
         # remainder, X * (365/N - 1), is then split evenly across each
         # remaining month for the year in the dataframe.
         if self.extrapolate:
-            d = self.df.date.dt.date.max()
-            y = self.df.date.dt.year.max()
+            d = datetime.now()
             last_date = datetime(d.year, d.month, d.day)
-            N = last_date - datetime(y, 1, 1)
-            df_final_year = self.df[self.df["date"] >= f"{y}-1-1"]
+            N = last_date - datetime(d.year, 1, 1)
+            df_final_year = self.df[self.df["date"] >= f"{d.year}-1-1"]
             df_sum = df_final_year.groupby("category")["amount"].sum()
             df_per_day = df_sum / N.days
             months_remaining = 12 - d.month
 
             # Create a set of dataframes, one per extrapolated month.
             df_list = []
-            extrapolated_dates = [datetime(y, m + 1, 15) for m in range(d.month, 12)]
+            extrapolated_dates = [
+                datetime(d.year, m + 1, 15) for m in range(d.month, 12)
+            ]
             for date in extrapolated_dates:
                 n_days = (date - last_date).days
                 last_date = date

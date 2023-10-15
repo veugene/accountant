@@ -40,6 +40,7 @@ def get_next_modal_body():
         ) = state_uncategorized.get_name_to_process()
     except StopIteration:
         message = "No uncategorized transactions"
+        similar_names = []
         options = []
     else:
         message = [
@@ -58,6 +59,7 @@ def get_next_modal_body():
                 ]
             ),
         ]
+        similar_names = []
         options = state_basic.get_categories()
         options = [c for c in options if c != "__UNKNOWN__"]
     return message, similar_names, options
