@@ -78,9 +78,7 @@ app.layout = html.Div(
             [
                 dcc.Upload(
                     id="upload_csv",
-                    children=html.Div(
-                        ["Import CSV files (click or drag and drop)"]
-                    ),
+                    children=html.Div(["Import CSV files (click or drag and drop)"]),
                     style={
                         "width": "31%",
                         "height": "60px",
@@ -414,10 +412,26 @@ app.layout = html.Div(
                             style={"float": "left"},
                         ),
                     ],
-                    style={"float": "left", "width": "10%", "margin": "1%"},
+                    style={"float": "left", "width": "12%", "margin": "1%"},
                 ),
             ],
             style={"float": "left", "width": "100%", "margin": "1%"},
+        ),
+        html.Div(
+            [
+                html.B("Filter table"),
+                html.Br(),
+                dcc.Input(
+                    type="text",
+                    debounce=True,
+                    id="table_filter_text",
+                    style={
+                        "overflow": "auto",
+                        "width": "100%",
+                    },
+                ),
+            ],
+            style={"float": "left", "width": "95%", "margin": "1%"},
         ),
         dbc.Modal(
             [
@@ -522,6 +536,7 @@ def upload_csv_callback(contents_list):
     Input("modal_query", "is_open"),  # Wait for callback
     Input("modal_select_categories", "is_open"),  # Wait for callback
     State("modal_checklist_category_selection", "value"),
+    Input("table_filter_text", "value"),
     Input("date_picker_range", "start_date"),  # Wait for callback
     Input("date_picker_range", "end_date"),  # Wait for callback
     Input("year_dropdown", "value"),  # Wait for callback
@@ -538,6 +553,7 @@ def refresh_all_callback(
     query_modal_open,
     select_modal_open,
     category_selection,
+    table_filter,
     *args,
     **kwargs,
 ):
@@ -554,6 +570,11 @@ def refresh_all_callback(
     if trigger_id == "modal-select_categories" and select_modal_open is True:
         # Update only when the modal is closed, not when it is opened.
         return no_update, no_update, no_update, no_update
+
+    if trigger_id == "table_filter_text":
+        if table_filter is None:
+            table_filter = ""
+        state_table.set_regex_query(table_filter)
 
     # Update all states.
     state_basic.update()
@@ -629,9 +650,7 @@ def categorize_callback(
     elif trigger_id == "modal_categorize_text":
         if new_category != "":
             # Avoid empty string category. Do nothing.
-            state_uncategorized.set_category(
-                new_category, selected_similar_names
-            )
+            state_uncategorized.set_category(new_category, selected_similar_names)
 
     # Initial null trigger on app start.
     elif len(trigger_id) == 0:

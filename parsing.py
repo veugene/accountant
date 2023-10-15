@@ -46,8 +46,7 @@ def parse_line(csv_line):
             return Transaction(
                 date=csv_line[0],
                 name=remove_transaction_number(csv_line[1]),
-                amount=string_to_float(csv_line[2])
-                - string_to_float(csv_line[3]),
+                amount=string_to_float(csv_line[2]) - string_to_float(csv_line[3]),
             )
     if len(csv_line) == 12:
         # Rogers Mastercard
@@ -73,9 +72,7 @@ def remove_transaction_number(name):
         if name.lower().startswith(match_string.lower()):
             n_words = len(match_string.split(" "))
             transaction_number = name.split(" ")[n_words]
-            name = name.replace(
-                transaction_number, "__REDACTED_TRANSACTION_NUMBER__"
-            )
+            name = name.replace(transaction_number, "__REDACTED_TRANSACTION_NUMBER__")
     return name
 
 

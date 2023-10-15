@@ -153,16 +153,12 @@ class _Database:
         self.connection.commit()
 
     def get_all_categories(self) -> List[Union[None, str]]:
-        result = self.cursor.execute(
-            f"SELECT DISTINCT category FROM {self.table_name}"
-        )
+        result = self.cursor.execute(f"SELECT DISTINCT category FROM {self.table_name}")
         retval = [val[0] for val in result.fetchall() if val[0] is not None]
         return retval
 
     def hash(self):
-        result = self.cursor.execute(
-            f"SELECT * FROM {self.table_name}"
-        ).fetchall()
+        result = self.cursor.execute(f"SELECT * FROM {self.table_name}").fetchall()
         transaction_string_list = []
         for tx in result:
             transaction_string_list.append("".join([str(v) for v in tx]))

@@ -390,8 +390,14 @@ class Table:
                 )
                 df["SUM(amount)"] = df["SUM(amount)"].map(lambda x: round(x, 2))
             else:
+                db.connection.create_function(
+                    "REGEXP",
+                    2,
+                    lambda x, y: 1 if re.search(x, y, re.IGNORECASE) else 0,
+                )
                 df = pd.read_sql_query(
                     f"SELECT * FROM {db.table_name} WHERE {category_query} "
+                    f"AND name REGEXP '{self.regex_query}' "
                     "ORDER BY date DESC",
                     db.connection,
                 )
