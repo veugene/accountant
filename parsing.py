@@ -55,6 +55,13 @@ def parse_line(csv_line):
             name=csv_line[7],
             amount=string_to_float(csv_line[11]),
         )
+    if len(csv_line) == 15:
+        # Rogers Mastercard
+        return Transaction(
+            date=csv_line[0],
+            name=csv_line[7],
+            amount=string_to_float(csv_line[12]),
+        )
     return None
 
 
